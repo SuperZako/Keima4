@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resources">
+      <UniqueIdentifier>88ccf6d6-8318-49bb-b5fe-6d21a4f1dc1c</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="src\Command.cpp" />
+    <ClCompile Include="src\DynamicKomi.cpp" />
+    <ClCompile Include="src\GoBoard.cpp" />
+    <ClCompile Include="src\Gtp.cpp" />
+    <ClCompile Include="src\Ladder.cpp" />
+    <ClCompile Include="src\Message.cpp" />
+    <ClCompile Include="src\Nakade.cpp" />
+    <ClCompile Include="src\Pattern.cpp" />
+    <ClCompile Include="src\PatternHash.cpp" />
+    <ClCompile Include="src\Point.cpp" />
+    <ClCompile Include="src\Rating.cpp" />
+    <ClCompile Include="src\RayMain.cpp" />
+    <ClCompile Include="src\Semeai.cpp" />
+    <ClCompile Include="src\Simulation.cpp" />
+    <ClCompile Include="src\UctRating.cpp" />
+    <ClCompile Include="src\UctSearch.cpp" />
+    <ClCompile Include="src\Utility.cpp" />
+    <ClCompile Include="src\ZobristHash.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Main.h" />
+    <ClInclude Include="src\Command.h" />
+    <ClInclude Include="src\DynamicKomi.h" />
+    <ClInclude Include="src\GoBoard.h" />
+    <ClInclude Include="src\Gtp.h" />
+    <ClInclude Include="src\Ladder.h" />
+    <ClInclude Include="src\Message.h" />
+    <ClInclude Include="src\Nakade.h" />
+    <ClInclude Include="src\Pattern.h" />
+    <ClInclude Include="src\PatternHash.h" />
+    <ClInclude Include="src\Point.h" />
+    <ClInclude Include="src\Rating.h" />
+    <ClInclude Include="src\Semeai.h" />
+    <ClInclude Include="src\Simulation.h" />
+    <ClInclude Include="src\UctRating.h" />
+    <ClInclude Include="src\UctSearch.h" />
+    <ClInclude Include="src\Utility.h" />
+    <ClInclude Include="src\ZobristHash.h" />
+  </ItemGroup>
+</Project>

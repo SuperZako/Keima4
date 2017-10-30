@@ -1,0 +1,54 @@
+﻿<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>jGoBoard SGF Player Demo</title>
+    <link rel="stylesheet" type="text/css" href="./css/default.css">
+</head>
+<body>
+    <div class="main">
+        <div class="main-content">
+            <div class="board" id="board"></div>
+            <p class="controls">
+                <a href="#" onclick="move(0); return false;"><i class="fa fa-fast-backward"></i></a>
+                <a href="#" onclick="move(-10); return false;"><i class="fa fa-backward"></i></a>
+                <a href="#" onclick="move(-1); return false;"><i class="fa fa-step-backward"></i></a>
+                <strong id="move">1</strong> / <strong id="moves">1</strong>
+                <a href="#" onclick="move(1); return false;"><i class="fa fa-step-forward"></i></a>
+                <a href="#" onclick="move(10); return false;"><i class="fa fa-forward"></i></a>
+                <a href="#" onclick="move(1000); return false;"><i class="fa fa-fast-forward"></i></a>
+                Variation: <strong id="variation">1</strong> / <strong id="variations">1</strong>
+                <a href="#" onclick="nextVariation(); return false;"><i title="variation" class="fa fa-arrows-v"></i></a>
+            </p>
+        </div>
+        <div class="aside">
+            <div class="game-controls">
+                <div id="play" class="icon play-icon"></div>
+                <div class="icon cancel-icon"></div>
+                <div class="icon resign-icon"></div>
+                <div class="icon settings-icon"></div>
+            </div>
+            <div class="black">
+                <div class="stone">
+                </div>
+                <div class="title">
+                    Player
+                </div>
+            </div>
+            <div class="white">
+                <div class="stone">
+                </div>
+                <div class="title">
+                    CPU
+                </div>
+            </div>
+            <p>
+                Black captures: <strong id="black_captures"></strong><br>
+                White captures: <strong id="white_captures"></strong>
+            </p>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="built/out.js"></script>
+</body>
+</html>

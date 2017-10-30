@@ -1,0 +1,289 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props')" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Uap.props" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Uap.props')" />
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|AnyCPU">
+      <Configuration>Debug</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|AnyCPU">
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+      <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+      <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+      <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+      <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>ddf827b2-d3a6-4010-82db-956c2b6c51f1</ProjectGuid>
+    <TypeScriptToolsVersion>2.5</TypeScriptToolsVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TypeScriptNoImplicitAny>true</TypeScriptNoImplicitAny>
+    <TypeScriptModuleKind>amd</TypeScriptModuleKind>
+    <TypeScriptOutFile>
+    </TypeScriptOutFile>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)|$(UseDotNetNativeToolchain)'=='Release|x64|true'">
+    <TypeScriptNoImplicitAny>true</TypeScriptNoImplicitAny>
+    <TypeScriptModuleKind>amd</TypeScriptModuleKind>
+    <TypeScriptOutFile>
+    </TypeScriptOutFile>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup Condition="'$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0'">
+    <VisualStudioVersion>14.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\$(WMSJSProjectDirectory)\Microsoft.VisualStudio.$(WMSJSProject).Default.props" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\$(WMSJSProjectDirectory)\Microsoft.VisualStudio.$(WMSJSProject).props" />
+  <PropertyGroup>
+    <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
+    <TargetPlatformVersion>10.0.14393.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.10240.0</TargetPlatformMinVersion>
+    <MinimumVisualStudioVersion>$(VersionNumberMajor).$(VersionNumberMinor)</MinimumVisualStudioVersion>
+    <DefaultLanguage>ja-JP</DefaultLanguage>
+    <PackageCertificateKeyFile>KeimaGUI_StoreKey.pfx</PackageCertificateKeyFile>
+    <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
+    <AppxBundle>Always</AppxBundle>
+    <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>
+    <PackageCertificateThumbprint>811FF0D04D4F9A10B4B9EED06C38FAE08461D2B8</PackageCertificateThumbprint>
+  </PropertyGroup>
+  <ItemGroup>
+    <AppxManifest Include="package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+    <Content Include="built\out.js" />
+    <Content Include="fonts\Symbols.ttf" />
+    <Content Include="index.html" />
+    <Content Include="large\black.png" />
+    <Content Include="large\shadow.png" />
+    <Content Include="large\shadow_dark.png" />
+    <Content Include="large\shinkaya.jpg" />
+    <Content Include="large\walnut.jpg" />
+    <Content Include="large\white.png" />
+    <Content Include="medium\black.png" />
+    <Content Include="medium\shadow.png" />
+    <Content Include="medium\shadow_dark.png" />
+    <Content Include="medium\shinkaya.jpg" />
+    <Content Include="medium\walnut.jpg" />
+    <Content Include="medium\white.png" />
+    <Content Include="_index.html" />
+    <Content Include="demo2.html" />
+    <Content Include="demo3.html" />
+    <Content Include="demo4.html" />
+    <Content Include="demo5.html" />
+    <Content Include="html\footer.html" />
+    <Content Include="i18n\i18n.ca.js" />
+    <Content Include="i18n\i18n.cs.js" />
+    <Content Include="i18n\i18n.de.js" />
+    <Content Include="i18n\i18n.en.js" />
+    <Content Include="i18n\i18n.es.js" />
+    <Content Include="i18n\i18n.fr.js" />
+    <Content Include="i18n\i18n.it.js" />
+    <Content Include="i18n\i18n.ja.js" />
+    <Content Include="i18n\i18n.ro.js" />
+    <Content Include="i18n\i18n.vi.js" />
+    <Content Include="i18n\i18n.zh.js" />
+    <Content Include="images\black.png" />
+    <Content Include="images\shinkaya.jpg" />
+    <Content Include="images\Square44x44Logo.targetsize-256_altform-unplated.png" />
+    <Content Include="images\white.png" />
+    <Content Include="js\main.js" />
+    <Content Include="___index.html" />
+    <Content Include="images\LockScreenLogo.scale-200.png" />
+    <Content Include="images\SplashScreen.scale-200.png" />
+    <Content Include="images\Square150x150Logo.scale-200.png" />
+    <Content Include="images\Square44x44Logo.scale-200.png" />
+    <Content Include="images\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Content Include="images\StoreLogo.png" />
+    <Content Include="images\Wide310x150Logo.scale-200.png" />
+    <Content Include="node_modules\%40types\winjs\package.json" />
+    <Content Include="node_modules\%40types\winjs\README.md" />
+    <Content Include="node_modules\%40types\winjs\types-metadata.json" />
+    <Content Include="node_modules\winjs\css\ui-dark.css" />
+    <Content Include="node_modules\winjs\css\ui-dark.min.css" />
+    <Content Include="node_modules\winjs\css\ui-light.css" />
+    <Content Include="node_modules\winjs\css\ui-light.min.css" />
+    <Content Include="node_modules\winjs\fonts\Symbols.ttf" />
+    <Content Include="node_modules\winjs\js\base.js" />
+    <Content Include="node_modules\winjs\js\base.min.js" />
+    <Content Include="node_modules\winjs\js\base.min.js.map" />
+    <Content Include="node_modules\winjs\js\en-US\ui.strings.js" />
+    <Content Include="node_modules\winjs\js\ui.js" />
+    <Content Include="node_modules\winjs\js\ui.min.js" />
+    <Content Include="node_modules\winjs\js\ui.min.js.map" />
+    <Content Include="node_modules\winjs\js\WinJS.intellisense-setup.js" />
+    <Content Include="node_modules\winjs\js\WinJS.intellisense.js" />
+    <Content Include="node_modules\winjs\License.txt" />
+    <Content Include="node_modules\winjs\package.json" />
+    <Content Include="node_modules\winjs\README.md" />
+    <Content Include="sim_params\MD2.txt" />
+    <Content Include="sim_params\Pat3.txt" />
+    <Content Include="sim_params\PreviousDistance.txt" />
+    <Content Include="sim_params\TacticalFeature.txt" />
+    <Content Include="textures\wood2.jpg" />
+    <Content Include="textures\wood3.jpg" />
+    <Content Include="textures\wood4.jpg" />
+    <Content Include="textures\wood5.jpg" />
+    <Content Include="textures\wood6.jpg" />
+    <Content Include="themes\wgo.player.dark.css" />
+    <Content Include="tsconfig.json" />
+    <Content Include="uct_params\MD2.txt" />
+    <Content Include="uct_params\MD3.txt" />
+    <Content Include="uct_params\MD4.txt" />
+    <Content Include="uct_params\MD5.txt" />
+    <Content Include="uct_params\MoveDistance1.txt" />
+    <Content Include="uct_params\MoveDistance2.txt" />
+    <Content Include="uct_params\Pass.txt" />
+    <Content Include="uct_params\Pat3.txt" />
+    <Content Include="uct_params\PosID.txt" />
+    <Content Include="uct_params\TacticalFeature.txt" />
+    <Content Include="uct_params\WeightZero.txt" />
+    <TypeScriptCompile Include="js\command.ts" />
+    <TypeScriptCompile Include="js\Game.ts" />
+    <TypeScriptCompile Include="js\GameInfo.ts" />
+    <TypeScriptCompile Include="js\GoBoard.ts" />
+    <TypeScriptCompile Include="js\Renderer.ts" />
+    <TypeScriptCompile Include="src\main.ts" />
+    <TypeScriptCompile Include="src\JGO\auto.ts" />
+    <TypeScriptCompile Include="src\JGO\board.ts" />
+    <TypeScriptCompile Include="src\JGO\canvas.ts" />
+    <TypeScriptCompile Include="src\JGO\constants.ts" />
+    <TypeScriptCompile Include="src\JGO\coordinate.ts" />
+    <TypeScriptCompile Include="src\JGO\large\board.ts" />
+    <TypeScriptCompile Include="src\JGO\medium\board.ts" />
+    <TypeScriptCompile Include="src\JGO\node.ts" />
+    <TypeScriptCompile Include="src\JGO\notifier.ts" />
+    <TypeScriptCompile Include="src\JGO\record.ts" />
+    <TypeScriptCompile Include="src\JGO\setup.ts" />
+    <TypeScriptCompile Include="src\JGO\sgf.ts" />
+    <TypeScriptCompile Include="src\JGO\stones.ts" />
+    <TypeScriptCompile Include="src\JGO\util.ts" />
+    <TypeScriptCompile Include="wgo\basicplayer.commentbox.ts" />
+    <TypeScriptCompile Include="wgo\basicplayer.component.ts" />
+    <TypeScriptCompile Include="wgo\basicplayer.control.ts" />
+    <TypeScriptCompile Include="wgo\basicplayer.infobox.ts" />
+    <TypeScriptCompile Include="wgo\board\themes.ts" />
+    <TypeScriptCompile Include="src\commands.ts" />
+    <TypeScriptCompile Include="wgo\kifu\invalidMoveError.ts" />
+    <TypeScriptCompile Include="wgo\kifu\kifu.ts" />
+    <TypeScriptCompile Include="wgo\kifu\kifuReader.ts" />
+    <TypeScriptCompile Include="wgo\kifu\KNode.ts" />
+    <TypeScriptCompile Include="wgo\kifu\util.ts" />
+    <TypeScriptCompile Include="wgo\logic\gameLogic.ts" />
+    <TypeScriptCompile Include="wgo\player\basicplayer.ts" />
+    <Content Include="wgo\black_128.png" />
+    <Content Include="wgo\black_64.png" />
+    <TypeScriptCompile Include="wgo\control\Button.ts" />
+    <TypeScriptCompile Include="wgo\control\Clickable.ts" />
+    <TypeScriptCompile Include="wgo\control\Group.ts" />
+    <TypeScriptCompile Include="wgo\control\MenuItem.ts" />
+    <TypeScriptCompile Include="wgo\control\MoveNumber.ts" />
+    <TypeScriptCompile Include="wgo\control\Widget.ts" />
+    <TypeScriptCompile Include="wgo\player.editable.ts" />
+    <TypeScriptCompile Include="wgo\player\layouts.ts" />
+    <TypeScriptCompile Include="wgo\player\player.ts" />
+    <TypeScriptCompile Include="wgo\player.permalink.ts" />
+    <TypeScriptCompile Include="wgo\scoremode.ts" />
+    <TypeScriptCompile Include="wgo\sgfparser.ts" />
+    <Content Include="wgo\stones\black00_128.png" />
+    <Content Include="wgo\stones\black01_128.png" />
+    <Content Include="wgo\stones\black02_128.png" />
+    <Content Include="wgo\stones\black03_128.png" />
+    <Content Include="wgo\stones\white00_128.png" />
+    <Content Include="wgo\stones\white01_128.png" />
+    <Content Include="wgo\stones\white02_128.png" />
+    <Content Include="wgo\stones\white03_128.png" />
+    <Content Include="wgo\stones\white04_128.png" />
+    <Content Include="wgo\stones\white05_128.png" />
+    <Content Include="wgo\stones\white06_128.png" />
+    <Content Include="wgo\stones\white07_128.png" />
+    <Content Include="wgo\stones\white08_128.png" />
+    <Content Include="wgo\stones\white09_128.png" />
+    <Content Include="wgo\stones\white10_128.png" />
+    <Content Include="wgo\wgo.player.css" />
+    <Content Include="wgo\white_128.png" />
+    <Content Include="wgo\white_64.png" />
+    <Content Include="wgo\wood1.jpg" />
+    <Content Include="wgo\wood_1024.jpg" />
+    <Content Include="wgo\wood_512.jpg" />
+    <None Include="KeimaGUI_StoreKey.pfx" />
+    <Content Include="lib\winjs-4.4.0\css\ui-dark.css" />
+    <Content Include="lib\winjs-4.4.0\css\ui-dark.min.css" />
+    <Content Include="lib\winjs-4.4.0\css\ui-light.css" />
+    <Content Include="lib\winjs-4.4.0\css\ui-light.min.css" />
+    <Content Include="lib\winjs-4.4.0\fonts\Symbols.ttf" />
+    <Content Include="lib\winjs-4.4.0\js\base.js" />
+    <Content Include="lib\winjs-4.4.0\js\base.min.js" />
+    <Content Include="lib\winjs-4.4.0\js\base.min.js.map" />
+    <Content Include="lib\winjs-4.4.0\js\en-US\ui.strings.js" />
+    <Content Include="lib\winjs-4.4.0\js\ui.js" />
+    <Content Include="lib\winjs-4.4.0\js\ui.min.js" />
+    <Content Include="lib\winjs-4.4.0\js\ui.min.js.map" />
+    <Content Include="lib\winjs-4.4.0\js\WinJS.intellisense-setup.js" />
+    <Content Include="lib\winjs-4.4.0\js\WinJS.intellisense.js" />
+    <Content Include="lib\winjs-4.4.0\License.txt" />
+    <Content Include="lib\winjs-4.4.0\package.json" />
+    <Content Include="lib\winjs-4.4.0\README.md" />
+    <None Include="Package.StoreAssociation.xml" />
+    <Content Include="packages.config" />
+    <Content Include="css\default.css" />
+    <None Include="KeimaGUI_TemporaryKey.pfx" />
+    <TypeScriptCompile Include="node_modules\%40types\winjs\index.d.ts" />
+    <TypeScriptCompile Include="wgo\board\Board.ts" />
+    <TypeScriptCompile Include="wgo\layer\CanvasLayer.ts" />
+    <TypeScriptCompile Include="wgo\Game.ts" />
+    <TypeScriptCompile Include="wgo\layer\GridLayer.ts" />
+    <TypeScriptCompile Include="wgo\layer\MultipleCanvasLayer.ts" />
+    <TypeScriptCompile Include="wgo\Position.ts" />
+    <TypeScriptCompile Include="wgo\layer\ShadowLayer.ts" />
+    <TypeScriptCompile Include="wgo\WGo.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{4a0dddb5-7a95-4fbf-97cc-616d07737a77}" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Keima\Keima.vcxproj" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\$(WMSJSProjectDirectory)\Microsoft.VisualStudio.$(WMSJSProject).targets" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets')" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Uap.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Uap.targets')" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.jsproj.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.jsproj.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below then uncomment
+       that target and the DisableFastUpToDateCheck PropertyGroup. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  <PropertyGroup>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+  </PropertyGroup>
+  -->
+</Project>

@@ -1,0 +1,121 @@
+﻿@font-face {
+    font-family: "Symbols";
+    src: url(../fonts/Symbols.ttf);
+}
+
+.icon {
+    font-family: "Symbols";
+    font-size: 28px;
+    border: 1px solid rgba(200,200,200,0.3);
+    border-radius: 2px;
+    background-color: rgba(255,255,255,0.3);
+    width: 44px;
+    height: 44px;
+    margin: 0 3px;
+    text-align: center;
+}
+
+    .icon:hover {
+        background-color: rgba(255,255,255,0.45);
+        border: 1px solid rgba(100,100,100,0.3);
+        box-shadow: 0 0 20px 0 rgba(150,150,150,0.5);
+    }
+
+.play-icon::before {
+    content: "\E102";
+    vertical-align: middle;
+}
+
+
+.play-icon.selected::before {
+    content: "\E103";
+    vertical-align: middle;
+}
+
+
+.cancel-icon::before {
+    content: "\E10A";
+    vertical-align: middle;
+}
+
+.resign-icon::before {
+    content: "\E129";
+    vertical-align: middle;
+}
+
+
+.settings-icon::before {
+    content: "\E115";
+    vertical-align: middle;
+}
+
+
+
+
+.main {
+    display: flex;
+}
+
+.board canvas {
+    height: 80vh;
+    width: 80vh;
+}
+
+.aside {
+    background: rgba(226,226,226,0.5);
+    border: 1px solid rgba(200,200,200,0.5);
+    box-sizing: border-box;
+}
+
+.game-controls {
+    display: flex;
+    padding: 6px;
+}
+
+.title {
+    font-family: Calibri,Tahoma,Arial;
+    color: black;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 6px 36px 6px;
+}
+
+
+.stone::after {
+    content: ' ';
+    float: left;
+    margin-top: 10px;
+    margin-right: 2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    box-shadow: 1px 1px 1px 1px rgba(127, 127, 127, 0.3);
+}
+
+.white {
+    padding: 6px;
+    border: 1px solid rgba(200,200,200,0.5);
+}
+
+    .white .stone::after {
+        background: rgb(255,255,255);
+        background: -moz-linear-gradient(-45deg, rgba(255,255,255,1) 0%, rgba(246,246,246,1) 47%, rgba(237,237,237,1) 100%);
+        background: -webkit-gradient(linear, left top, right bottom, color-stop(0%,rgba(255,255,255,1)), color-stop(47%,rgba(246,246,246,1)), color-stop(100%,rgba(237,237,237,1)));
+        background: -webkit-linear-gradient(-45deg, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%);
+        background: -o-linear-gradient(-45deg, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%);
+        background: linear-gradient(135deg, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%);
+    }
+
+.black {
+    padding: 6px;
+    border: 1px solid rgba(200,200,200,0.5);
+}
+
+    .black .stone::after {
+        background: rgb(35,36,39);
+        background: -moz-linear-gradient(-45deg, rgba(35,36,39,1) 0%, rgba(0,0,0,1) 100%);
+        background: -webkit-gradient(linear, left top, right bottom, color-stop(0%,rgba(35,36,39,1)), color-stop(100%,rgba(0,0,0,1)));
+        background: -webkit-linear-gradient(-45deg, rgba(35,36,39,1) 0%,rgba(0,0,0,1) 100%);
+        background: -o-linear-gradient(-45deg, rgba(35,36,39,1) 0%,rgba(0,0,0,1) 100%);
+        background: linear-gradient(135deg, rgba(35,36,39,1) 0%,rgba(0,0,0,1) 100%);
+    }
