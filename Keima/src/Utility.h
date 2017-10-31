@@ -1,12 +1,22 @@
-#pragma once
+ï»¿#ifndef _UTILITY_H_
+#define _UTILITY_H_
 
-#include <ctime>
+#include <chrono>
 
-// Á”ïŠÔ‚ÌZo
-double GetSpendTime(clock_t start_time);
+////////////
+//  é–¢æ•°  //
+////////////
+typedef std::chrono::high_resolution_clock ray_clock;
 
-// ƒf[ƒ^“Ç‚İ‚İ(float)
-void InputTxtFLT(const char *filename, float *ap, int array_size);
+// æ¶ˆè²»æ™‚é–“ã®ç®—å‡º
+inline double GetSpendTime(const ray_clock::time_point& start_time) {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(ray_clock::now() - start_time).count() / 1000.0;
+}
 
-// ƒf[ƒ^“Ç‚İ‚İ(double)
-void InputTxtDBL(const char *filename, double *ap, int array_size);
+//  ãƒ‡ãƒ¼ã‚¿èª­ã¿è¾¼ã¿(float)
+void InputTxtFLT( const char *filename, float *ap, const int array_size );
+
+//  ãƒ‡ãƒ¼ã‚¿èª­ã¿è¾¼ã¿(double)
+void InputTxtDBL( const char *filename, double *ap, const int array_size );
+
+#endif

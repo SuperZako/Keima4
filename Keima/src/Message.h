@@ -1,53 +1,53 @@
-#ifndef _MESSAGE_H_
+ï»¿#ifndef _MESSAGE_H_
 #define _MESSAGE_H_
 
 #include "GoBoard.h"
 #include "UctSearch.h"
 
 
-//  ƒGƒ‰[ƒƒbƒZ[ƒW‚Ìo—Í‚Ìİ’è
-void SetDebugMessageMode( bool flag );
+//  ã‚¨ãƒ©ãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®å‡ºåŠ›ã®è¨­å®š
+void SetDebugMessageMode( const bool flag );
 
-//  ”Õ–Ê‚Ì•\¦
-void PrintBoard( game_info_t *game );
+//  ç›¤é¢ã®è¡¨ç¤º
+void PrintBoard( const game_info_t *game );
 
-//  ˜A‚Ìî•ñ‚Ì•\¦              
-//    ŒÄ‹z“_‚Ì”, À•W          
-//    ˜A‚ğ\¬‚·‚éÎ‚Ì”, À•W  
-//    —×Ú‚·‚é“G‚Ì˜A‚ÌID
-void PrintString( game_info_t *game );
+//  é€£ã®æƒ…å ±ã®è¡¨ç¤º              
+//    å‘¼å¸ç‚¹ã®æ•°, åº§æ¨™          
+//    é€£ã‚’æ§‹æˆã™ã‚‹çŸ³ã®æ•°, åº§æ¨™  
+//    éš£æ¥ã™ã‚‹æ•µã®é€£ã®ID
+void PrintString( const game_info_t *game );
 
-//  ŠeÀ•W‚Ì˜AID‚Ì•\¦  
-void PrintStringID( game_info_t *game );
+//  å„åº§æ¨™ã®é€£IDã®è¡¨ç¤º  
+void PrintStringID( const game_info_t *game );
 
-//  ˜AƒŠƒXƒg‚ÌŒq‚ª‚è‚ğ•\¦(Debug—p)
-void PrintStringNext( game_info_t *game );
+//  é€£ãƒªã‚¹ãƒˆã®ç¹‹ãŒã‚Šã‚’è¡¨ç¤º(Debugç”¨)
+void PrintStringNext( const game_info_t *game );
 
-//  ‡–@è‚Å‚ ‚éŒó•âè‚ğ•\¦ 
-void PrintLegal( game_info_t *game, int color );
+//  åˆæ³•æ‰‹ã§ã‚ã‚‹å€™è£œæ‰‹ã‚’è¡¨ç¤º 
+void PrintLegal( const game_info_t *game, const int color );
 
-//  ƒI[ƒi[‚Ì•\¦
-void PrintOwner( uct_node_t *root, int color, double *own );
+//  ã‚ªãƒ¼ãƒŠãƒ¼ã®è¡¨ç¤º
+void PrintOwner( const uct_node_t *root, const int color, double *own );
 
-//  Å‘P‰è—ñ‚Ì•\¦
-void PrintBestSequence( game_info_t *game, uct_node_t *uct_node, int root, int start_color );
+//  æœ€å–„å¿œæ‰‹åˆ—ã®è¡¨ç¤º
+void PrintBestSequence( const game_info_t *game, const uct_node_t *uct_node, const int root, const int start_color );
 
-//  ’Tõ‚Ìî•ñ‚Ì•\¦
-void PrintPlayoutInformation( uct_node_t *root, po_info_t *po_info, double finish_time, int pre_simulated );
+//  æ¢ç´¢ã®æƒ…å ±ã®è¡¨ç¤º
+void PrintPlayoutInformation( const uct_node_t *root, const po_info_t *po_info, const double finish_time, const int pre_simulated );
 
-//  À•W‚Ìo—Í
-void PrintPoint( int pos );
+//  åº§æ¨™ã®å‡ºåŠ›
+void PrintPoint( const int pos );
 
-//  ƒRƒ~‚Ì’l‚Ìo—Í
+//  ã‚³ãƒŸã®å€¤ã®å‡ºåŠ›
 void PrintKomiValue( void );
 
-//  Pondering‚ÌƒvƒŒƒCƒAƒEƒg‰ñ”‚Ìo—Í
-void PrintPonderingCount( int count );
+//  Ponderingã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®å‡ºåŠ›
+void PrintPonderingCount( const int count );
 
-//  ’TõŠÔ‚Ìo—Í
-void PrintPlayoutLimits( double time_limit, int playout_limit );
+//  æ¢ç´¢æ™‚é–“ã®å‡ºåŠ›
+void PrintPlayoutLimits( const double time_limit, const int playout_limit );
 
-//  Ä—˜—p‚µ‚½’Tõ‰ñ”‚Ìo—Í
-void PrintReuseCount( int count );
+//  å†åˆ©ç”¨ã—ãŸæ¢ç´¢å›æ•°ã®å‡ºåŠ›
+void PrintReuseCount( const int count );
 
 #endif

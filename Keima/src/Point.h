@@ -1,15 +1,35 @@
-#ifndef _POINT_H_
+ï»¿#ifndef _POINT_H_
 #define _POINT_H_
 
-#define GOGUI_X(pos) (gogui_x[CORRECT_X(pos)])
-#define GOGUI_Y(pos) (pure_board_size + 1 - CORRECT_Y(pos))
 
-extern wchar_t gogui_x[26];
+//////////////////
+//  ãƒã‚¯ãƒ­é–¢æ•°  //
+//////////////////
 
-//  2ŸŒ³•\‹L‚©‚ç1ŸŒ³•\‹L‚Ö•ÏŠ·  
-int StringToInteger( char *cpos );
+#define GOGUI_X(pos) (gogui_x[CORRECT_X(pos)])               // GOGUIã§ã®Xåº§æ¨™ã®è¡¨è¨˜
+#define GOGUI_Y(pos) (pure_board_size + 1 - CORRECT_Y(pos))  // GOGUIã§ã®Yåº§æ¨™ã®è¡¨è¨˜
 
-//  1ŸŒ³•\‹L‚©‚ç2ŸŒ³•\‹L‚Ö•ÏŠ·  
-void IntegerToString( int pos, char *cpos );
+
+////////////
+//  å®šæ•°  //
+////////////
+
+//  Yåº§æ¨™ã®æ–‡å­—
+const char gogui_x[] = { 
+  'I', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 
+  'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 
+  'U', 'V', 'W', 'X', 'Y', 'Z' 
+};
+
+
+////////////
+//  é–¢æ•°  //
+////////////
+
+//  2æ¬¡å…ƒè¡¨è¨˜ã‹ã‚‰1æ¬¡å…ƒè¡¨è¨˜ã¸å¤‰æ›  
+int StringToInteger( const char *cpos );
+
+//  1æ¬¡å…ƒè¡¨è¨˜ã‹ã‚‰2æ¬¡å…ƒè¡¨è¨˜ã¸å¤‰æ›  
+void IntegerToString( const int pos, char *cpos );
 
 #endif

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <algorithm>
 #include <cstring>
@@ -8,31 +8,36 @@
 #include "Nakade.h"
 #include "Pattern.h"
 #include "Point.h"
+#include "ZobristHash.h"
 
 using namespace std;
 
+// 3ç›®ã®ãƒŠã‚«ãƒ‡ã®å½¢ã®å€‹æ•°
+static const int NAKADE_3 = 6;
+// 4ç›®ã®ãƒŠã‚«ãƒ‡ã®å½¢ã®å€‹æ•°
+static const int NAKADE_4 = 5;
+// 5ç›®ã®ãƒŠã‚«ãƒ‡ã®å½¢ã®å€‹æ•°
+static const int NAKADE_5 = 9;
+// 6ç›®ã®ãƒŠã‚«ãƒ‡ã®å½¢ã®å€‹æ•°
+static const int NAKADE_6 = 4;
 
-// 3–Ú’†è‚Ìƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…’l
-unsigned long long nakade3_hash[6];
-// 4–Ú’†è‚Ìƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…’l
-unsigned long long nakade4_hash[5];
-// 5–Ú’†è‚Ìƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…’l
-unsigned long long nakade5_hash[9];
-// 6–Ú’†è‚Ìƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…’l
-unsigned long long nakade6_hash[4];
+static const int NAKADE_PATTERNS[4] = {
+  NAKADE_3, NAKADE_4, NAKADE_5, NAKADE_6
+};
 
-// 3–Ú’†è‚Ì‹}Š
-int nakade3_pos[6];
-// 4–Ú’†è‚Ì‹}Š
-int nakade4_pos[5];
-// 5–Ú’†è‚Ì‹}Š
-int nakade5_pos[9];
-// 6–Ú’†è‚Ì‹}Š
-int nakade6_pos[4];
+static const int NAKADE_MAX_SIZE = NAKADE_5;
 
-static int start = BOARD_MAX / 2;  
+// 3ç›®, 4ç›®, 5ç›®, 6ç›®ã®ãƒŠã‚«ãƒ‡ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒãƒƒã‚·ãƒ¥å€¤
+unsigned long long nakade_hash[4][NAKADE_MAX_SIZE];
+// 3ç›®, 4ç›®, 5ç›®, 6ç›®ã®ãƒŠã‚«ãƒ‡ã®æ€¥æ‰€
+int nakade_pos[4][NAKADE_MAX_SIZE];
 
-// ƒiƒJƒf‚ªŒ»‚ê‚È‚¢ƒpƒ^[ƒ“
+static int start = BOARD_MAX / 2;
+
+// ãƒŠã‚«ãƒ‡ã®å­˜åœ¨å¯å¦ã‚’åˆ¤å®šã™ã‚‹ãŸã‚ã®ãƒ“ãƒƒãƒˆãƒã‚¹ã‚¯
+unsigned int nakade_pat3_mask[PAT3_MAX];
+
+// ãƒŠã‚«ãƒ‡ãŒç¾ã‚Œãªã„ãƒ‘ã‚¿ãƒ¼ãƒ³
 const unsigned int nakade_none[134] = {
   0x0000, 0x0001, 0x0004, 0x0005, 0x0006, 0x0012, 0x0015, 0x0016, 0x003f, 0x0044,
   0x0045, 0x0046, 0x0048, 0x0049, 0x0054, 0x0055, 0x0056, 0x0060, 0x0061, 0x0064,
@@ -50,7 +55,7 @@ const unsigned int nakade_none[134] = {
   0x5dff, 0x6699, 0x66bf, 0x6eff, 
 };
 
-// ƒiƒJƒf‚ªoŒ»‚·‚éƒpƒ^[ƒ“‚Æ‚»‚Ì•ûŒü
+// ãƒŠã‚«ãƒ‡ãŒå‡ºç¾ã™ã‚‹ãƒ‘ã‚¿ãƒ¼ãƒ³ã¨ãã®æ–¹å‘
 const unsigned int nakade_mask[446][2] = {
   {0x0011, 0x0004}, {0x0019, 0x0004}, {0x0050, 0x0004}, {0x0051, 0x0004}, {0x0052, 0x0004},
   {0x0058, 0x0004}, {0x0059, 0x0004}, {0x005a, 0x0004}, {0x0062, 0x0008}, {0x0066, 0x0008},
@@ -153,20 +158,30 @@ const unsigned int nakade_mask[446][2] = {
 };
 
 
-int nakade_pat3_mask[PAT3_MAX];
+////////////
+//  é–¢æ•°  //
+////////////
+
+// ãƒŠã‚«ãƒ‡ã«ãªã£ã¦ã„ã‚‹åº§æ¨™ã‚’è¿”ã™
+static int FindNakadePos( const game_info_t *game, const int pos, const int color );
+
+// ã‚­ãƒ¥ãƒ¼ã®æ“ä½œ
+static void InitializeNakadeQueue( nakade_queue_t *nq );
+static void Enqueue( nakade_queue_t *nq, int pos );
+static int Dequeue( nakade_queue_t *nq );
+static bool IsQueueEmpty( const nakade_queue_t *nq );
 
 //////////////
-//  ‰Šú‰»  //
+//  åˆæœŸåŒ–  //
 //////////////
 void
 InitializeNakadeHash( void )
 {
   int nakade3[6][3], nakade4[5][4], nakade5[9][5], nakade6[4][6];
-  int i, j;
 
   start = board_max / 2;
 
-  // 3–Ú‚ÌƒiƒJƒf
+  // 3ç›®ã®ãƒŠã‚«ãƒ‡
   nakade3[0][0] = 0; nakade3[0][1] = 1;              nakade3[0][2] = 2;
   nakade3[1][0] = 0; nakade3[1][1] = board_size;     nakade3[1][2] = 2 * board_size;
   nakade3[2][0] = 0; nakade3[2][1] = 1;              nakade3[2][2] = board_size + 1;
@@ -174,7 +189,7 @@ InitializeNakadeHash( void )
   nakade3[4][0] = 0; nakade3[4][1] = board_size;     nakade3[4][2] = board_size + 1;
   nakade3[5][0] = 0; nakade3[5][1] = 1;              nakade3[5][2] = board_size;
 
-  // 4–Ú‚ÌƒiƒJƒf
+  // 4ç›®ã®ãƒŠã‚«ãƒ‡
   nakade4[0][0] = 0;              nakade4[0][1] = board_size - 1; 
   nakade4[0][2] = board_size;     nakade4[0][3] = board_size + 1;
   nakade4[1][0] = 0;              nakade4[1][1] = board_size - 1; 
@@ -186,7 +201,7 @@ InitializeNakadeHash( void )
   nakade4[4][0] = 0;              nakade4[4][1] = 1; 
   nakade4[4][2] = board_size;     nakade4[4][3] = board_size + 1;
 
-  // 5–Ú‚ÌƒiƒJƒf
+  // 5ç›®ã®ãƒŠã‚«ãƒ‡
   nakade5[0][0] = 0;                  nakade5[0][1] = board_size - 1; nakade5[0][2] = board_size;
   nakade5[0][3] = board_size + 1;     nakade5[0][4] = 2 * board_size;
   nakade5[1][0] = 0;                  nakade5[1][1] = board_size - 1; nakade5[1][2] = board_size;
@@ -219,82 +234,82 @@ InitializeNakadeHash( void )
   nakade6[3][2] = board_size;         nakade6[3][3] = board_size + 1; 
   nakade6[3][4] = 2 * board_size;     nakade6[3][5] = 2 * board_size + 1;
 
-  nakade3_pos[0] = 1;
-  nakade3_pos[1] = board_size;
-  nakade3_pos[2] = 1;
-  nakade3_pos[3] = board_size;
-  nakade3_pos[4] = board_size;
-  nakade3_pos[5] = 0;
+  nakade_pos[0][0] = 1;
+  nakade_pos[0][1] = board_size;
+  nakade_pos[0][2] = 1;
+  nakade_pos[0][3] = board_size;
+  nakade_pos[0][4] = board_size;
+  nakade_pos[0][5] = 0;
 
-  nakade4_pos[0] = board_size;
-  nakade4_pos[1] = board_size;
-  nakade4_pos[2] = board_size;
-  nakade4_pos[3] = 1;
-  nakade4_pos[4] = 0;
+  nakade_pos[1][0] = board_size;
+  nakade_pos[1][1] = board_size;
+  nakade_pos[1][2] = board_size;
+  nakade_pos[1][3] = 1;
+  nakade_pos[1][4] = 0;
 
-  nakade5_pos[0] = board_size;
-  nakade5_pos[1] = board_size;
-  nakade5_pos[2] = board_size + 1;
-  nakade5_pos[3] = board_size;
-  nakade5_pos[4] = 1;
-  nakade5_pos[5] = board_size;
-  nakade5_pos[6] = 1;
-  nakade5_pos[7] = board_size + 1;
-  nakade5_pos[8] = board_size;
+  nakade_pos[2][0] = board_size;
+  nakade_pos[2][1] = board_size;
+  nakade_pos[2][2] = board_size + 1;
+  nakade_pos[2][3] = board_size;
+  nakade_pos[2][4] = 1;
+  nakade_pos[2][5] = board_size;
+  nakade_pos[2][6] = 1;
+  nakade_pos[2][7] = board_size + 1;
+  nakade_pos[2][8] = board_size;
 
-  nakade6_pos[0] = board_size;
-  nakade6_pos[1] = board_size + 1;
-  nakade6_pos[2] = board_size;
-  nakade6_pos[3] = board_size;
+  nakade_pos[3][0] = board_size;
+  nakade_pos[3][1] = board_size + 1;
+  nakade_pos[3][2] = board_size;
+  nakade_pos[3][3] = board_size;
 
-  for (i = 0; i < 6; i++) {
-    nakade3_hash[i] = 0;
-    for (j = 0; j < 3; j++) {
-      nakade3_hash[i] ^= shape_bit[start + nakade3[i][j]];
+  for (int i = 0; i < NAKADE_3; i++) {
+    nakade_hash[0][i] = 0;
+    for (int j = 0; j < 3; j++) {
+      nakade_hash[0][i] ^= shape_bit[start + nakade3[i][j]];
     }
   }
 
-  for (i = 0; i < 5; i++) {
-    nakade4_hash[i] = 0;
-    for (j = 0; j < 4; j++) {
-      nakade4_hash[i] ^= shape_bit[start + nakade4[i][j]];
+  for (int i = 0; i < NAKADE_4; i++) {
+    nakade_hash[1][i] = 0;
+    for (int j = 0; j < 4; j++) {
+      nakade_hash[1][i] ^= shape_bit[start + nakade4[i][j]];
     }
   }
 
-  for (i = 0; i < 9; i++) {
-    nakade5_hash[i] = 0;
-    for (j = 0; j < 5; j++) {
-      nakade5_hash[i] ^= shape_bit[start + nakade5[i][j]];
+  for (int i = 0; i < NAKADE_5; i++) {
+    nakade_hash[2][i] = 0;
+    for (int j = 0; j < 5; j++) {
+      nakade_hash[2][i] ^= shape_bit[start + nakade5[i][j]];
     }
   }
 
-  for (i = 0; i < 4; i++) {
-    nakade6_hash[i] = 0;
-    for (j = 0; j < 6; j++) {
-      nakade6_hash[i] ^= shape_bit[start + nakade6[i][j]];
+  for (int i = 0; i < NAKADE_6; i++) {
+    nakade_hash[3][i] = 0;
+    for (int j = 0; j < 6; j++) {
+      nakade_hash[3][i] ^= shape_bit[start + nakade6[i][j]];
     }
   }
 
-  // ‰Šú‰»
-  for (i = 0; i < PAT3_MAX; i++) {
+  // åˆæœŸåŒ–
+  for (int i = 0; i < PAT3_MAX; i++) {
     nakade_pat3_mask[i] = 0xffff;
   }
 
-  // ƒiƒJƒf‚ªoŒ»‚µ‚È‚¢ƒpƒ^[ƒ“‚Ì‰Šú‰»
-  for (i = 0; i < 134; i++) {
+  // ãƒŠã‚«ãƒ‡ãŒå‡ºç¾ã—ãªã„ãƒ‘ã‚¿ãƒ¼ãƒ³ã®åˆæœŸåŒ–
+  for (int i = 0; i < 134; i++) {
     unsigned int tmp_pat3[16];
     Pat3Transpose16(nakade_none[i], tmp_pat3);
-    for (j = 0; j < 16; j++) {
+    for (int j = 0; j < 16; j++) {
       nakade_pat3_mask[tmp_pat3[j]] = 0;
     }
   }
 
-  // ƒiƒJƒf‚ªoŒ»‚µ‚¤‚éƒpƒ^[ƒ“‚Ì‰Šú‰»
-  for (i = 0; i < 446; i++) {
+  // ãƒŠã‚«ãƒ‡ãŒå‡ºç¾ã—ã†ã‚‹ãƒ‘ã‚¿ãƒ¼ãƒ³ã®åˆæœŸåŒ–
+  for (int i = 0; i < 446; i++) {
     unsigned int tmp_pat3[16], tmp_mask[16];
     Pat3Transpose16(nakade_mask[i][0], tmp_pat3);
     Pat3Transpose16(nakade_mask[i][1], tmp_mask);
-    for (j = 0; j < 16; j++) {
+    for (int j = 0; j < 16; j++) {
       nakade_pat3_mask[tmp_pat3[j]] = tmp_mask[j];
     }
   }
@@ -302,39 +317,33 @@ InitializeNakadeHash( void )
 
 
 ////////////////////////////////////////////////
-//  ©ŒÈƒAƒ^ƒŠ‚ÌŒ`‚ªƒiƒJƒf‚É‚È‚Á‚Ä‚¢‚é‚©Šm”F  //
-//  3–Ú, 4–Ú, 5–ÚƒiƒJƒf‚Ì‚İŠm”F‚·‚é           //
+//  è‡ªå·±ã‚¢ã‚¿ãƒªã®å½¢ãŒãƒŠã‚«ãƒ‡ã«ãªã£ã¦ã„ã‚‹ã‹ç¢ºèª  //
+//  3ç›®, 4ç›®, 5ç›®ãƒŠã‚«ãƒ‡ã®ã¿ç¢ºèªã™ã‚‹           //
 ////////////////////////////////////////////////
 bool
-IsNakadeSelfAtari( game_info_t *game, int pos, int color )
+IsNakadeSelfAtari( const game_info_t *game, const int pos, const int color )
 {
-  char *board = game->board;
-  string_t *string = game->string;
-  int *string_id = game->string_id;
-  int *string_next = game->string_next;
-  int stones[10];
-  int my_stone;
-  int i, n = 0, reviser;
+  const char *board = game->board;
+  const string_t *string = game->string;
+  const int *string_id = game->string_id;
+  const int *string_next = game->string_next;
+  const int neighbor4[4] = { NORTH(pos), WEST(pos), EAST(pos), SOUTH(pos) };
   unsigned long long hash = 0;
-  int checked[4] = { 0 };
-  int check = 0;
-  int id;
+  int stones[10], checked[4] = { 0 };
+  int check = 0, n = 0, my_stone, reviser, id;
 
-  // ã‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[NORTH(pos)] == color) {
-    id = string_id[NORTH(pos)];
-    my_stone = string[id].origin;
-    while (my_stone != STRING_END) {
-      stones[n++] = my_stone;
-      my_stone = string_next[my_stone];
-    }
-    checked[check++] = id;
-  }
-
-  // ¶‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[WEST(pos)] == color) {
-    id = string_id[WEST(pos)];
-    if (checked[0] != id) {
+  // ä¸Šä¸‹å·¦å³ã‚’ç¢ºèªã—, è‡ªåˆ†ã®é€£ã ã£ãŸã‚‰, ãã‚Œãã‚Œã®çŸ³ã®åº§æ¨™ã‚’è¨˜éŒ²
+  for (int i = 0 ; i < 4; i++) {
+    if (board[neighbor4[i]] == color) {
+      id = string_id[neighbor4[i]];
+      bool check_flag = false;
+      for (int j = 0; j < check; j++) {
+	if (checked[j] == id) {
+	  check_flag = true;
+	  break;
+	}
+      }
+      if (check_flag) continue;
       my_stone = string[id].origin;
       while (my_stone != STRING_END) {
 	stones[n++] = my_stone;
@@ -344,73 +353,35 @@ IsNakadeSelfAtari( game_info_t *game, int pos, int color )
     }
   }
 
-  // ‰E‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[EAST(pos)] == color) {
-    id = string_id[EAST(pos)];
-    if (checked[0] != id && checked[1] != id) {
-      my_stone = string[id].origin;
-      while (my_stone != STRING_END) {
-	stones[n++] = my_stone;
-	my_stone = string_next[my_stone];
-      }
-      checked[check++] = id;
-    }
-  }
-
-  // ‰º‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[SOUTH(pos)] == color) {
-    id = string_id[SOUTH(pos)];
-    if (checked[0] != id && checked[1] != id && checked[2] != id) {
-      my_stone = string[id].origin;
-      while (my_stone != STRING_END) {
-	stones[n++] = my_stone;
-	my_stone = string_next[my_stone];
-      }
-      checked[check++] = id;
-    }
-  }
-
-  // Šm”F‚µ‚Ä‚¢‚éÀ•W‚à‰Á‚¦‚é
+  // ç¢ºèªã—ã¦ã„ã‚‹åº§æ¨™ã‚‚åŠ ãˆã‚‹
   stones[n++] = pos;
   
-  // ˜A‚Ì‘å‚«‚³‚ª6ˆÈã‚È‚ç‘Å‚½‚È‚¢‚æ‚¤‚É
-  // false‚ğ•Ô‚·
+  // é€£ã®å¤§ãã•ãŒ6ä»¥ä¸Šãªã‚‰æ‰“ãŸãªã„ã‚ˆã†ã«
+  // falseã‚’è¿”ã™
   if (n > 5) {
     return false;
   }
 
-  // À•W‚ğƒ\[ƒg
+  // åº§æ¨™ã‚’ã‚½ãƒ¼ãƒˆ
   std::sort(stones, stones + n);
 
-  // Î‚ÌÀ•W‚Ì•â³€
+  // çŸ³ã®åº§æ¨™ã®è£œæ­£é …
   reviser = start - stones[0];
 
-  // ƒnƒbƒVƒ…’l‚ğŒvZ
-  for (i = 0; i < n; i++) {
+  // ãƒãƒƒã‚·ãƒ¥å€¤ã‚’è¨ˆç®—
+  for (int i = 0; i < n; i++) {
     hash ^= shape_bit[stones[i] + reviser];
   }
 
-  // ƒnƒbƒVƒ…’l‚ªˆê’v‚µ‚Ä‚¢‚é‚©Šm”F
-  // ƒiƒJƒf‚Ìƒpƒ^[ƒ“‚È‚ç‚Îtrue‚ğ•Ô‚·
-  // ‚»‚¤‚Å‚È‚¯‚ê‚Îfalse‚ğ•Ô‚·
+  // ãƒãƒƒã‚·ãƒ¥å€¤ãŒä¸€è‡´ã—ã¦ã„ã‚‹ã‹ç¢ºèª
+  // ãƒŠã‚«ãƒ‡ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ãªã‚‰ã°trueã‚’è¿”ã™
+  // ãã†ã§ãªã‘ã‚Œã°falseã‚’è¿”ã™
   switch (n) {
   case 3:
-    for (i = 0; i < 6; i++) {
-      if (nakade3_hash[i] == hash) {
-	return true;
-      }
-    }
-    break;
   case 4:
-    for (i = 0; i < 5; i++) {
-      if (nakade4_hash[i] == hash) {
-	return true;
-      }
-    }
-    break;
   case 5:
-    for (i = 0; i < 9; i++) {
-      if (nakade5_hash[i] == hash) {
+    for (int i = 0; i < NAKADE_PATTERNS[n - 3]; i++) {
+      if (nakade_hash[n - 3][i] == hash) {
 	return true;
       }
     }
@@ -422,38 +393,33 @@ IsNakadeSelfAtari( game_info_t *game, int pos, int color )
 
 
 //////////////////////////////////////////////////
-//  ©ŒÈƒAƒ^ƒŠ‚ªƒiƒJƒf‚ÌŒ`‚É‚È‚Á‚Ä‚¢‚é‚©‚ğŠm”F  //
+//  è‡ªå·±ã‚¢ã‚¿ãƒªãŒãƒŠã‚«ãƒ‡ã®å½¢ã«ãªã£ã¦ã„ã‚‹ã‹ã‚’ç¢ºèª  //
 //////////////////////////////////////////////////
 bool
-IsUctNakadeSelfAtari( game_info_t *game, int pos, int color )
+IsUctNakadeSelfAtari( const game_info_t *game, const int pos, const int color )
 {
-  char *board = game->board;
-  string_t *string = game->string;
-  int *string_id = game->string_id;
-  int *string_next = game->string_next;
-  int stones[10];
-  int my_stone;
-  int i, n = 0, reviser;
+  const char *board = game->board;
+  const string_t *string = game->string;
+  const int *string_id = game->string_id;
+  const int *string_next = game->string_next;
+  const int neighbor4[4] = { NORTH(pos), WEST(pos), EAST(pos), SOUTH(pos) };
   unsigned long long hash = 0;
-  int checked[4] = { 0 };
-  int check = 0;
-  int id;
+  int stones[10], checked[4] = { 0 };
+  int n = 0, check = 0, my_stone, reviser, id;
 
-  // ã‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[NORTH(pos)] == color) {
-    id = string_id[NORTH(pos)];
-    my_stone = string[id].origin;
-    while (my_stone != STRING_END) {
-      stones[n++] = my_stone;
-      my_stone = string_next[my_stone];
-    }
-    checked[check++] = id;
-  }
 
-  // ¶‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[WEST(pos)] == color) {
-    id = string_id[WEST(pos)];
-    if (checked[0] != id) {
+  // ä¸Šä¸‹å·¦å³ã‚’ç¢ºèªã—, è‡ªåˆ†ã®é€£ã ã£ãŸã‚‰, ãã‚Œãã‚Œã®çŸ³ã®åº§æ¨™ã‚’è¨˜éŒ²
+  for (int i = 0 ; i < 4; i++) {
+    if (board[neighbor4[i]] == color) {
+      id = string_id[neighbor4[i]];
+      bool check_flag = false;
+      for (int j = 0; j < check; j++) {
+	if (checked[j] == id) {
+	  check_flag = true;
+	  break;
+	}
+      }
+      if (check_flag) continue;
       my_stone = string[id].origin;
       while (my_stone != STRING_END) {
 	stones[n++] = my_stone;
@@ -463,74 +429,30 @@ IsUctNakadeSelfAtari( game_info_t *game, int pos, int color )
     }
   }
 
-  // ‰E‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[EAST(pos)] == color) {
-    id = string_id[EAST(pos)];
-    if (checked[0] != id && checked[1] != id) {
-      my_stone = string[id].origin;
-      while (my_stone != STRING_END) {
-	stones[n++] = my_stone;
-	my_stone = string_next[my_stone];
-      }
-      checked[check++] = id;
-    }
-  }
-
-  // ‰º‚ª©•ª‚Ì˜A‚¾‚Á‚½‚ç, ‚»‚ê‚¼‚ê‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-  if (board[SOUTH(pos)] == color) {
-    id = string_id[SOUTH(pos)];
-    if (checked[0] != id && checked[1] != id && checked[2] != id) {
-      my_stone = string[id].origin;
-      while (my_stone != STRING_END) {
-	stones[n++] = my_stone;
-	my_stone = string_next[my_stone];
-      }
-      checked[check++] = id;
-    }
-  }
-
-  // Šm”F‚µ‚Ä‚¢‚éÀ•W‚à‰Á‚¦‚é
+  // ç¢ºèªã—ã¦ã„ã‚‹åº§æ¨™ã‚‚åŠ ãˆã‚‹
   stones[n++] = pos;
 
-  // À•W‚ğƒ\[ƒg
+  // åº§æ¨™ã‚’ã‚½ãƒ¼ãƒˆ
   std::sort(stones, stones + n);
 
-  // Î‚ÌÀ•W‚Ì•â³€
+  // çŸ³ã®åº§æ¨™ã®è£œæ­£é …
   reviser = start - stones[0];
 
-  // ƒnƒbƒVƒ…’l‚ÌŒvZ
-  for (i = 0; i < n; i++) {
+  // ãƒãƒƒã‚·ãƒ¥å€¤ã®è¨ˆç®—
+  for (int i = 0; i < n; i++) {
     hash ^= shape_bit[stones[i] + reviser];
   }
 
-  // ƒnƒbƒVƒ…’l‚ªˆê’v‚µ‚Ä‚¢‚é‚©Šm”F
-  // ƒiƒJƒf‚Ìƒpƒ^[ƒ“‚È‚ç‚Îtrue‚ğ•Ô‚·
-  // ‚»‚¤‚Å‚È‚¯‚ê‚Îfalse‚ğ•Ô‚·
+  // ãƒãƒƒã‚·ãƒ¥å€¤ãŒä¸€è‡´ã—ã¦ã„ã‚‹ã‹ç¢ºèª
+  // ãƒŠã‚«ãƒ‡ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ãªã‚‰ã°trueã‚’è¿”ã™
+  // ãã†ã§ãªã‘ã‚Œã°falseã‚’è¿”ã™
   switch (n) {
   case 3:
-    for (i = 0; i < 6; i++) {
-      if (nakade3_hash[i] == hash) {
-	return true;
-      }
-    }
-    break;
   case 4:
-    for (i = 0; i < 5; i++) {
-      if (nakade4_hash[i] == hash) {
-	return true;
-      }
-    }
-    break;
   case 5:
-    for (i = 0; i < 9; i++) {
-      if (nakade5_hash[i] == hash) {
-	return true;
-      }
-    }
-    break;
   case 6:
-    for (i = 0; i < 4; i++) {
-      if (nakade6_hash[i] == hash) {
+    for (int i = 0; i < NAKADE_PATTERNS[n - 3]; i++) {
+      if (nakade_hash[n - 3][i] == hash) {
 	return true;
       }
     }
@@ -542,106 +464,71 @@ IsUctNakadeSelfAtari( game_info_t *game, int pos, int color )
 
 
 ////////////////////////////////////////////////
-//  ’¼‘O‚Ì’…è‚ÅƒiƒJƒf‚ÌŒ`‚ªŒ»‚ê‚Ä‚¢‚é‚©Šm”F  //
+//  ç›´å‰ã®ç€æ‰‹ã§ãƒŠã‚«ãƒ‡ã®å½¢ãŒç¾ã‚Œã¦ã„ã‚‹ã‹ç¢ºèª  //
 ////////////////////////////////////////////////
-int
-FindNakadePos( game_info_t *game, int pos, int color )
+static int
+FindNakadePos( const game_info_t *game, const int pos, const int color )
 {
-  nakade_queue_t nakade_queue;
-  char *board = game->board;
-  int size = 0;
+  const char *board = game->board;
   bool flag[BOARD_MAX] = { false };  
-  int current_pos;
-  int nakade[10];
-  int nakade_num = 0;
+  nakade_queue_t nakade_queue;
   unsigned long long hash = 0;
-  int i, reviser;
+  int nakade[10], neighbor4[4];
+  int size = 0, nakade_num = 0, current_pos, reviser;
 
-  // ƒLƒ…[‚Ì‰Šú‰»
+  // ã‚­ãƒ¥ãƒ¼ã®åˆæœŸåŒ–
   InitializeNakadeQueue(&nakade_queue);
 
-  // ŠJn“_‚ğƒLƒ…[‚É“ü‚ê‚é
+  // é–‹å§‹ç‚¹ã‚’ã‚­ãƒ¥ãƒ¼ã«å…¥ã‚Œã‚‹
   Enqueue(&nakade_queue, pos);
 
-  // Šm”FÏ‚İ‚Ìƒtƒ‰ƒO
+  // ç¢ºèªæ¸ˆã¿ã®ãƒ•ãƒ©ã‚°
   flag[pos] = true;
 
-  // ƒLƒ…[‚ª‹ó‚É‚È‚é‚Ü‚Åƒ‹[ƒv
+  // ã‚­ãƒ¥ãƒ¼ãŒç©ºã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ—
   while (!IsQueueEmpty(&nakade_queue)) {
     current_pos = Dequeue(&nakade_queue);
     nakade[nakade_num++] = current_pos;
 
-    // —Ìˆæ‚ÌƒTƒCƒY‚ª6ˆÈã‚É‚È‚Á‚½‚ç
-    // ƒiƒJƒf‚Å‚Í‚È‚¢‚Æ”»’è
+    // é ˜åŸŸã®ã‚µã‚¤ã‚ºãŒ6ä»¥ä¸Šã«ãªã£ãŸã‚‰
+    // ãƒŠã‚«ãƒ‡ã§ã¯ãªã„ã¨åˆ¤å®š
     if (size > 5) return NOT_NAKADE;
 
-    // ã‚ª–¢Šm”F‚Å, ©•ª‚ÌÎ‚©‹ó“_‚È‚ç’Ç‰Á
-    if (!flag[NORTH(current_pos)] &&
-	(board[NORTH(current_pos)] & color) == 0) {
-      Enqueue(&nakade_queue, NORTH(current_pos));
-      flag[NORTH(current_pos)] = true;
-      size++;
-    }
+    GetNeighbor4(neighbor4, current_pos);
 
-    // ¶‚ª–¢Šm”F‚Å, ©•ª‚ÌÎ‚©‹ó“_‚È‚ç’Ç‰Á
-    if (!flag[WEST(current_pos)] &&
-	(board[WEST(current_pos)] & color) == 0) {
-      Enqueue(&nakade_queue, WEST(current_pos));
-      flag[WEST(current_pos)] = true;
-      size++;
-    }
-
-    // ‰E‚ª–¢Šm”F‚Å, ©•ª‚ÌÎ‚©‹ó“_‚È‚ç’Ç‰Á
-    if (!flag[EAST(current_pos)] &&
-	(board[EAST(current_pos)] & color) == 0) {
-      Enqueue(&nakade_queue, EAST(current_pos));
-      flag[SOUTH(current_pos)] = true;
-      size++;
-    }
-
-    // ‰º‚ª–¢Šm”F‚Å, ©•ª‚ÌÎ‚©‹ó“_‚È‚ç’Ç‰Á
-    if (!flag[SOUTH(current_pos)] &&
-	(board[SOUTH(current_pos)] & color) == 0) {
-      Enqueue(&nakade_queue, SOUTH(current_pos));
-      flag[SOUTH(current_pos)] = true;
-      size++;
+    // ä¸Šä¸‹å·¦å³ã«ã¤ã„ã¦, æœªç¢ºèªã§, è‡ªåˆ†ã®çŸ³ã‹ç©ºç‚¹ãªã‚‰è¿½åŠ 
+    for (int i = 0; i < 4; i++) {
+      if (!flag[neighbor4[i]] &&
+	  (board[neighbor4[i]] & color) == 0) {
+	Enqueue(&nakade_queue, neighbor4[i]);
+	flag[neighbor4[i]] = true;
+	size++;
+      }
     }
   }
 
-  // —Ìˆæ‚ª6ˆÈã‚È‚çƒiƒJƒf‚Å‚Í‚È‚¢
+  // é ˜åŸŸãŒ6ä»¥ä¸Šãªã‚‰ãƒŠã‚«ãƒ‡ã§ã¯ãªã„
   if (nakade_num > 5) return NOT_NAKADE;
 
-  // À•W‚ğƒ\[ƒg
+  // åº§æ¨™ã‚’ã‚½ãƒ¼ãƒˆ
   std::sort(nakade, nakade + nakade_num);
 
-  // À•W‚Ì•â³€‚ğZo
+  // åº§æ¨™ã®è£œæ­£é …ã‚’ç®—å‡º
   reviser = start - nakade[0];
 
-  // ƒnƒbƒVƒ…’l‚ÌŒvZ
-  for (i = 0; i < nakade_num; i++) {
+  // ãƒãƒƒã‚·ãƒ¥å€¤ã®è¨ˆç®—
+  for (int i = 0; i < nakade_num; i++) {
     hash ^= shape_bit[nakade[i] + reviser];
   }
 
-  // ƒiƒJƒf‚ÌŒ`‚É‚È‚Á‚Ä‚¢‚ê‚Î, ‚»‚ÌÀ•W‚ğ•Ô‚·
+  // ãƒŠã‚«ãƒ‡ã®å½¢ã«ãªã£ã¦ã„ã‚Œã°, ãã®åº§æ¨™ã‚’è¿”ã™
   switch (nakade_num) {
   case 3:
-    for (i = 0; i < 6; i++) {
-      if (nakade3_hash[i] == hash) {
-	return nakade[0] + nakade3_pos[i];
-      }
-    }
-    break;
   case 4:
-    for (i = 0; i < 4; i++) {
-      if (nakade4_hash[i] == hash) {
-	return nakade[0] + nakade4_pos[i];
-      }
-    }
-    break;
   case 5:
-    for (i = 0; i < 9; i++) {
-      if (nakade5_hash[i] == hash) {
-	return nakade[0] + nakade5_pos[i];
+    for (int i = 0; i < NAKADE_PATTERNS[nakade_num - 3]; i++) {
+      if (nakade_hash[nakade_num - 3][i] == hash) {
+	return nakade[0] + nakade_pos[nakade_num - 3][i];
       }
     }
     break;
@@ -653,94 +540,68 @@ FindNakadePos( game_info_t *game, int pos, int color )
 
 
 //////////////////////////////////////
-//  ’¼‘O‚Ì’…è‚ÅƒiƒJƒf‚ª‚ ‚é‚©Šm”F  //
+//  ç›´å‰ã®ç€æ‰‹ã§ãƒŠã‚«ãƒ‡ãŒã‚ã‚‹ã‹ç¢ºèª  //
 //////////////////////////////////////
 void
-SearchNakade( game_info_t *game, int *nakade_num, int *nakade_pos )
+SearchNakade( const game_info_t *game, int *nakade_num, int *nakade_pos )
 {
-  int last_color = game->record[game->moves - 1].color;
-  int pos = game->record[game->moves - 1].pos;
+  const int last_color = game->record[game->moves - 1].color;
+  const int pos = game->record[game->moves - 1].pos;
   const unsigned int mask[2][4] = {
     {0x0004, 0x0040, 0x0100, 0x1000}, {0x0008, 0x0080, 0x0200, 0x2000},
   };
   const unsigned int all_mask[2] = {
     0x1144, 0x2288
   };
-  unsigned int pat3 = Pat3(game->pat, pos);
+  const int neighbor4[4] = { NORTH(pos), WEST(pos), EAST(pos), SOUTH(pos) };
+  const unsigned int pat3 = Pat3(game->pat, pos);
 
-  // ƒiƒJƒf‚ªoŒ»‚µ“¾‚È‚¢ƒpƒ^[ƒ“‚È‚ç–ß‚é
+  // ãƒŠã‚«ãƒ‡ãŒå‡ºç¾ã—å¾—ãªã„ãƒ‘ã‚¿ãƒ¼ãƒ³ãªã‚‰æˆ»ã‚‹
   if ((nakade_pat3_mask[pat3] & all_mask[last_color - 1]) == 0) return;
 
-  // ã‚ÌŠm”F
-  if ((nakade_pat3_mask[pat3] & mask[last_color - 1][0]) != 0) {
-    nakade_pos[(*nakade_num)++] = FindNakadePos(game, NORTH(pos), last_color);
+  for (int i = 0; i < 4; i++) {
+    if ((nakade_pat3_mask[pat3] & mask[last_color - 1][i]) != 0) {
+      nakade_pos[(*nakade_num)++] = FindNakadePos(game, neighbor4[i], last_color);
+    }
   }
-  
-  // ¶‚ÌŠm”F
-  if ((nakade_pat3_mask[pat3] & mask[last_color - 1][1]) != 0) {
-    nakade_pos[(*nakade_num)++] = FindNakadePos(game, WEST(pos), last_color);
-  }
-  
-  // ‰E‚ÌŠm”F
-  if ((nakade_pat3_mask[pat3] & mask[last_color - 1][2]) != 0) {
-    nakade_pos[(*nakade_num)++] = FindNakadePos(game, EAST(pos), last_color);
-  }
-
-  // ‰º‚ÌŠm”F
-  if ((nakade_pat3_mask[pat3] & mask[last_color - 1][3]) != 0) {
-    nakade_pos[(*nakade_num)++] = FindNakadePos(game, SOUTH(pos), last_color);
-  }
-  
   
 }
 
 
 ////////////////////////////////////////////////////
-//  Î‚ğæ‚èœ‚¢‚½‰ÓŠ‚ªƒiƒJƒf‚É‚È‚Á‚Ä‚¢‚é‚©Šm”F  //
+//  çŸ³ã‚’å–ã‚Šé™¤ã„ãŸç®‡æ‰€ãŒãƒŠã‚«ãƒ‡ã«ãªã£ã¦ã„ã‚‹ã‹ç¢ºèª  //
 ////////////////////////////////////////////////////
 int
-CheckRemovedStoneNakade( game_info_t *game, int color )
+CheckRemovedStoneNakade( const game_info_t *game, const int color )
 {
-  int capture_num = game->capture_num[FLIP_COLOR(color)];
-  int *capture_pos = game->capture_pos[FLIP_COLOR(color)];
-  int reviser, i;
+  const int capture_num = game->capture_num[FLIP_COLOR(color)];
+  const int *capture_pos = game->capture_pos[FLIP_COLOR(color)];
   unsigned long long hash = 0;
+  int reviser;
 
-  // •ßŠl‚µ‚½Î‚Ì”‚ª3ŒÂˆÈã6ŒÂˆÈ‰º‚È‚çŠm”F‚µ
-  // ‚»‚êˆÈŠO‚È‚ç‰½‚à‚µ‚È‚¢‚ÅI—¹
+  // æ•ç²ã—ãŸçŸ³ã®æ•°ãŒ3å€‹ä»¥ä¸Š6å€‹ä»¥ä¸‹ãªã‚‰ç¢ºèªã—
+  // ãã‚Œä»¥å¤–ãªã‚‰ä½•ã‚‚ã—ãªã„ã§çµ‚äº†
   if (capture_num > 6 ||
       capture_num < 3) {
     return NOT_NAKADE;
   }
 
-  // À•W‚Ì•â³€‚ÌZo
+  // åº§æ¨™ã®è£œæ­£é …ã®ç®—å‡º
   reviser = start - capture_pos[0];
 
-  // ƒnƒbƒVƒ…’l‚ÌŒvZ
-  for (i = 0; i < capture_num; i++) {
+  // ãƒãƒƒã‚·ãƒ¥å€¤ã®è¨ˆç®—
+  for (int i = 0; i < capture_num; i++) {
     hash ^= shape_bit[capture_pos[i] + reviser];
   }
 
-  // ƒiƒJƒf‚É‚È‚Á‚Ä‚¢‚ê‚Î, ‚»‚ÌÀ•W‚ğ•Ô‚·
+  // ãƒŠã‚«ãƒ‡ã«ãªã£ã¦ã„ã‚Œã°, ãã®åº§æ¨™ã‚’è¿”ã™
   switch (capture_num) {
   case 3:
-    for (i = 0; i < 6; i++) {
-      if (nakade3_hash[i] == hash) {
-	return capture_pos[0] + nakade3_pos[i];
-      }
-    }
-    break;
   case 4:
-    for (i = 0; i < 4; i++) {
-      if (nakade4_hash[i] == hash) {
-	return capture_pos[0] + nakade4_pos[i];
-      }
-    }
-    break;
   case 5:
-    for (i = 0; i < 9; i++) {
-      if (nakade5_hash[i] == hash) {
-	return capture_pos[0] + nakade5_pos[i];
+    for (int i = 0; i < NAKADE_PATTERNS[capture_num - 3]; i++) {
+      if (nakade_hash[capture_num - 3][i] == hash) {
+	return capture_pos[0] + nakade_pos[capture_num - 3][i];
       }
     }
     break;
@@ -750,7 +611,7 @@ CheckRemovedStoneNakade( game_info_t *game, int color )
 }
 
 
-void
+static void
 Enqueue( nakade_queue_t *nq, int pos )
 {
   nq->pos[nq->tail++] = pos;
@@ -764,7 +625,7 @@ Enqueue( nakade_queue_t *nq, int pos )
 }
 
 
-int
+static int
 Dequeue( nakade_queue_t *nq )
 {
   int pos;
@@ -772,8 +633,7 @@ Dequeue( nakade_queue_t *nq )
   if (nq->head == nq->tail) {
     cerr << "queue underflow" << endl;
     exit(1);
-  }
-  else {
+  } else {
     pos = nq->pos[nq->head++];
     if (nq->head >= NAKADE_QUEUE_SIZE) {
       nq->head = 0;
@@ -783,15 +643,15 @@ Dequeue( nakade_queue_t *nq )
 }
 
 
-void
+static void
 InitializeNakadeQueue( nakade_queue_t *nq )
 {
   nq->head = nq->tail = 0;
 }
 
 
-bool
-IsQueueEmpty( nakade_queue_t *nq )
+static bool
+IsQueueEmpty( const nakade_queue_t *nq )
 {
   return nq->head == nq->tail;
 }

@@ -1,7 +1,10 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <cstring>
 #include <cstdio>
+#if defined (_WIN32)
+#include <windows.h>
+#endif
 
 #include "Command.h"
 #include "GoBoard.h"
@@ -14,20 +17,22 @@
 #include "ZobristHash.h"
 
 
-int main(int argc, char **argv) {
-	char* program_path = "";// [1024];
+int main(int argc, char **argv)
+{
+	char* program_path = "";//[1024];
 	int last;
 
-	// Àsƒtƒ@ƒCƒ‹‚Ì‚ ‚éƒfƒBƒŒƒNƒgƒŠ‚ÌƒpƒX‚ğ’Šo
+	// å®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚ã‚‹ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã®ãƒ‘ã‚¹ã‚’æŠ½å‡º
 #if defined (_WIN32)
-	//strcpy_s(program_path, argv[0]);
+	// HMODULE hModule = GetModuleHandle(NULL);
+	// GetModuleFileNameA(hModule, program_path, 1024);
 #else
 	strcpy(program_path, argv[0]);
 #endif
 	last = (int)strlen(program_path);
 	while (last--) {
 #if defined (_WIN32)
-		if (program_path[last] == '\\') {
+		if (program_path[last] == '\\' || program_path[last] == '/') {
 			program_path[last] = '\0';
 			break;
 		}
@@ -39,25 +44,23 @@ int main(int argc, char **argv) {
 #endif
 	}
 
-	// ŠeíƒpƒX‚Ìİ’è
+	// å„ç¨®ãƒ‘ã‚¹ã®è¨­å®š
 #if defined (_WIN32)
 	sprintf_s(uct_params_path, 1024, "%s\\uct_params", program_path);
 	sprintf_s(po_params_path, 1024, "%s\\sim_params", program_path);
 #else
-	sprintf(uct_params_path, "%s/uct_params", program_path);
-	sprintf(po_params_path, "%s/sim_params", program_path);
+	snprintf(uct_params_path, 1024, "%s/uct_params", program_path);
+	snprintf(po_params_path, 1024, "%s/sim_params", program_path);
 #endif
-	// ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚Ì‰ğÍ  
+	// ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³å¼•æ•°ã®è§£æ  
 	AnalyzeCommand(argc, argv);
 
-	// ‰Šúİ’è
-	SetThread(2);
 	SetReuseSubtree(true);
 	SetPonderingMode(true);
 	SetMode(CONST_TIME_MODE);
-	SetConstTime(1);
+	SetConstTime(0.5);
 
-	// Šeí‰Šú‰»
+	// å„ç¨®åˆæœŸåŒ–
 	InitializeConst();
 	InitializeRating();
 	InitializeUctRating();

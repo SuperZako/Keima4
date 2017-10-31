@@ -1,7 +1,6 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <iostream>
-#include <string>
 #include <cstdio>
 #include <cstdlib>
 
@@ -9,47 +8,23 @@
 
 using namespace std;
 
-//////////////////////
-//  Á”ïŽžŠÔ‚ÌŽZo  //
-//////////////////////
-double
-GetSpendTime(clock_t start_time)
-{
-	return (double)(clock() - start_time) * (1.0 / CLOCKS_PER_SEC);
-}
-
 
 ////////////////////////////
-//  ƒeƒLƒXƒg“ü—Í (float)  //
+//  ãƒ†ã‚­ã‚¹ãƒˆå…¥åŠ› (float)  //
 ////////////////////////////
 void
-InputTxtFLT(const char *filename, float *ap, int array_size)
+InputTxtFLT(const char *filename, float *ap, const int array_size)
 {
-	FILE *fp;
-	int i;
-
-	auto char_str = filename;// "Char string";
-	std::string s_str = std::string(char_str);
-	std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
-	const wchar_t* w_char = wid_str.c_str();
-	Platform::String^ p_string = ref new Platform::String(w_char);
-
-	Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
-	Windows::Storage::StorageFolder^ installedLocation = package->InstalledLocation;
-	CREATEFILE2_EXTENDED_PARAMETERS pCreateExParams = { 0 };
-	auto file = installedLocation->Path + p_string;
-
-	auto err = _wfopen_s(&fp, file->Data(), L"r");
-
+	FILE *fp = nullptr;
 #if defined (_WIN32)
-	//errno_t err;
+	errno_t err;
 
-	//err = fopen_s(&fp, filename, "r");
-	if (err != 0) {
+	fp = fileOpen(filename); //fopen_s(&fp, filename, "r");
+	if (/*err != 0*/fp == nullptr) {
 		cerr << "can not open -" << filename << "-" << endl;
 		exit(1);
 	}
-	for (i = 0; i < array_size; i++) {
+	for (int i = 0; i < array_size; i++) {
 		if (fscanf_s(fp, "%f", &ap[i]) == EOF) {
 			cerr << "Read Error : " << filename << endl;
 		}
@@ -59,7 +34,7 @@ InputTxtFLT(const char *filename, float *ap, int array_size)
 	if (fp == NULL) {
 		cerr << "can not open -" << filename << "-" << endl;
 	}
-	for (i = 0; i < array_size; i++) {
+	for (int i = 0; i < array_size; i++) {
 		if (fscanf(fp, "%f", &ap[i]) == EOF) {
 			cerr << "Read Error : " << filename << endl;
 			exit(1);
@@ -70,35 +45,20 @@ InputTxtFLT(const char *filename, float *ap, int array_size)
 
 
 /////////////////////////////
-//  ƒeƒLƒXƒg“ü—Í (double)  //
+//  ãƒ†ã‚­ã‚¹ãƒˆå…¥åŠ› (double)  //
 /////////////////////////////
 void
-InputTxtDBL(const char *filename, double *ap, int array_size)
+InputTxtDBL(const char *filename, double *ap, const int array_size)
 {
-	FILE *fp;
-	int i;
-
-	auto char_str = filename;// "Char string";
-	std::string s_str = std::string(char_str);
-	std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
-	const wchar_t* w_char = wid_str.c_str();
-	Platform::String^ p_string = ref new Platform::String(w_char);
-
-	Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
-	Windows::Storage::StorageFolder^ installedLocation = package->InstalledLocation;
-	CREATEFILE2_EXTENDED_PARAMETERS pCreateExParams = { 0 };
-	auto file = installedLocation->Path + p_string;
-
-	auto err = _wfopen_s(&fp, file->Data(), L"r");
-
+	FILE *fp = nullptr;
 #if defined (_WIN32)
-	//errno_t err;
+	errno_t err;
 
-	//err = fopen_s(&fp, filename, "r");
-	if (err != 0) {
+	fp = fileOpen(filename);//fopen_s(&fp, filename, "r");
+	if (/*err != 0*/fp == nullptr) {
 		cerr << "can not open -" << filename << "-" << endl;
 	}
-	for (i = 0; i < array_size; i++) {
+	for (int i = 0; i < array_size; i++) {
 		if (fscanf_s(fp, "%lf", &ap[i]) == EOF) {
 			cerr << "Read Error : " << filename << endl;
 		}
@@ -108,7 +68,7 @@ InputTxtDBL(const char *filename, double *ap, int array_size)
 	if (fp == NULL) {
 		cerr << "can not open -" << filename << "-" << endl;
 	}
-	for (i = 0; i < array_size; i++) {
+	for (int i = 0; i < array_size; i++) {
 		if (fscanf(fp, "%lf", &ap[i]) == EOF) {
 			cerr << "Read Error : " << filename << endl;
 		}

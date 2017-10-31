@@ -1,53 +1,84 @@
-#pragma once
+﻿#ifndef _ZOBRISTHASH_H_
+#define _ZOBRISTHASH_H_
+
+#include <vector>
 
 #include "GoBoard.h"
 
-enum hash {
-	HASH_PASS,
-	HASH_BLACK,
-	HASH_WHITE,
-	HASH_KO,
+////////////
+//  定数  //
+////////////
+
+enum hash{
+  HASH_PASS,  // パス
+  HASH_BLACK, // 黒石
+  HASH_WHITE, // 白石
+  HASH_KO,    // 劫
+};
+
+//  ハッシュ表のサイズのデフォルト値
+const unsigned int UCT_HASH_SIZE = 16384;
+
+//////////////
+//  構造体  //
+//////////////
+
+struct node_hash_t {
+  unsigned long long hash;  // ハッシュ値
+  int color;                // 手番
+  int moves;                // 手数
+  bool flag;                // 使用済みフラグ
 };
 
 
-const unsigned int UCT_HASH_SIZE = 16384;
+////////////
+//  変数  //
+////////////
 
-typedef struct {
-	unsigned long long hash;
-	int color;
-	int moves;
-	bool flag;
-} node_hash_t;
+//  UCTのノード用のビット列 (局面の合流なし)
+extern unsigned long long move_bit[MAX_RECORDS][BOARD_MAX][HASH_KO + 1];
 
-
-//  bit��
+//  局面を表現するためのビット列
 extern unsigned long long hash_bit[BOARD_MAX][HASH_KO + 1];
-extern unsigned long long shape_bit[BOARD_MAX];
 
+//  ナカデの形を表現するためのビット列
+extern unsigned long long shape_bit[BOARD_MAX];              
+
+//  UCT用ハッシュテーブル
 extern node_hash_t *node_hash;
 
-extern unsigned int uct_hash_size;
+//  UCT用ハッシュテーブルのザイズ
+extern unsigned int uct_hash_size; 
 
-//  �n�b�V���e�[�u���̃T�C�Y�̐ݒ�
-void SetHashSize(unsigned int new_size);
+////////////
+//  関数  //
+////////////
 
-//  bit��̏�����
-void InitializeHash(void);
+//  ハッシュテーブルのサイズの設定
+void SetHashSize( const unsigned int new_size );
 
-//  UCT�m�[�h�̃n�b�V���̏�����
-void InitializeUctHash(void);
+//  bit列の初期化
+void InitializeHash( void );
 
-//  UCT�m�[�h�̃n�b�V�����̃N���A
-void ClearUctHash(void);
+//  UCTノードのハッシュの初期化
+void InitializeUctHash( void );
 
-//  �Â��f�[�^�̍폜
-void DeleteOldHash(game_info_t *game);
+//  UCTノードのハッシュ情報のクリア
+void ClearUctHash( void );
 
-//  ���g�p�̃C���f�b�N�X��T��
-unsigned int SearchEmptyIndex(unsigned long long hash, int color, int moves);
+//  古いデータの削除
+void DeleteOldHash( const game_info_t *game );
 
-//  �n�b�V���l�ɑΉ�����C���f�b�N�X��Ԃ�
-unsigned int FindSameHashIndex(unsigned long long hash, int color, int moves);
+//  未使用のインデックスを探す
+unsigned int SearchEmptyIndex( const unsigned long long hash, const int color, const int moves );
 
-//  �n�b�V���\�����܂��Ă��Ȃ����m�F
-bool CheckRemainingHashSize(void);
+//  ハッシュ値に対応するインデックスを返す
+unsigned int FindSameHashIndex( const unsigned long long hash, const int color, const int moves );
+
+//  ハッシュ表が埋まっていないか確認
+bool CheckRemainingHashSize( void );
+
+//  現局面から到達しないノードを削除
+void ClearNotDescendentNodes( std::vector<int> &indexes );
+
+#endif

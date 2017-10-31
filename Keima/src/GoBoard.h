@@ -1,241 +1,260 @@
-#pragma once
+ï»¿#ifndef _GO_BOARD_H_
+#define _GO_BOARD_H_
 
 #include "Pattern.h"
 
-namespace GoBoard {
-
-}
 ////////////////
-//    ’è”    //
+//    å®šæ•°    //
 ////////////////
 
-constexpr int PURE_BOARD_SIZE = 19;  // ”Õ‚Ì‘å‚«‚³
+const int PURE_BOARD_SIZE = 19;  // ç›¤ã®å¤§ãã•
 
-constexpr int OB_SIZE = 5; // ”ÕŠO‚Ì•
-constexpr int BOARD_SIZE = (PURE_BOARD_SIZE + OB_SIZE + OB_SIZE); // ”ÕŠO‚ğŠÜ‚ß‚½”Õ‚Ì•
+const int OB_SIZE = 5; // ç›¤å¤–ã®å¹…
+const int BOARD_SIZE = (PURE_BOARD_SIZE + OB_SIZE + OB_SIZE); // ç›¤å¤–ã‚’å«ã‚ãŸç›¤ã®å¹…
 
-constexpr int PURE_BOARD_MAX = (PURE_BOARD_SIZE * PURE_BOARD_SIZE); // ”Õ‚Ì‘å‚«‚³ 
-constexpr int BOARD_MAX = (BOARD_SIZE * BOARD_SIZE);                // ”ÕŠO‚ğŠÜ‚ß‚½”Õ‚Ì‘å‚«‚³
+const int PURE_BOARD_MAX = (PURE_BOARD_SIZE * PURE_BOARD_SIZE); // ç›¤ã®å¤§ãã• 
+const int BOARD_MAX = (BOARD_SIZE * BOARD_SIZE);                // ç›¤å¤–ã‚’å«ã‚ãŸç›¤ã®å¤§ãã•
 
-constexpr int MAX_STRING = (PURE_BOARD_MAX * 4 / 5); // ˜A‚ÌÅ‘å” 
-constexpr int MAX_NEIGHBOR = MAX_STRING;             // —×Ú‚·‚é“G˜A‚ÌÅ‘å”
+const int MAX_STRING = (PURE_BOARD_MAX * 4 / 5); // é€£ã®æœ€å¤§æ•° 
+const int MAX_NEIGHBOR = MAX_STRING;             // éš£æ¥ã™ã‚‹æ•µé€£ã®æœ€å¤§æ•°
 
-constexpr int BOARD_START = OB_SIZE;                        // ”Õ‚Ìn“_  
-constexpr int BOARD_END = (PURE_BOARD_SIZE + OB_SIZE - 1);  // ”Õ‚ÌI“_  
+const int BOARD_START = OB_SIZE;                        // ç›¤ã®å§‹ç‚¹  
+const int BOARD_END = (PURE_BOARD_SIZE + OB_SIZE - 1);  // ç›¤ã®çµ‚ç‚¹  
 
-constexpr int STRING_LIB_MAX = (BOARD_SIZE * (PURE_BOARD_SIZE + OB_SIZE));  // 1‚Â‚Ì˜A‚Ì‚ÂŒÄ‹z“_‚ÌÅ‘å”
-constexpr int STRING_POS_MAX = (BOARD_SIZE * (PURE_BOARD_SIZE + OB_SIZE));  // ˜A‚ª‚¿‚¤‚éÀ•W‚ÌÅ‘å’l
+const int STRING_LIB_MAX = (BOARD_SIZE * (PURE_BOARD_SIZE + OB_SIZE));  // 1ã¤ã®é€£ã®æŒã¤å‘¼å¸ç‚¹ã®æœ€å¤§æ•°
+const int STRING_POS_MAX = (BOARD_SIZE * (PURE_BOARD_SIZE + OB_SIZE));  // é€£ãŒæŒã¡ã†ã‚‹åº§æ¨™ã®æœ€å¤§å€¤
 
-constexpr int STRING_END = (STRING_POS_MAX - 1); // ˜A‚ÌI’[‚ğ•\‚·’l
-constexpr int NEIGHBOR_END = (MAX_NEIGHBOR - 1);  // —×Ú‚·‚é“G˜A‚ÌI’[‚ğ•\‚·’l
-constexpr int LIBERTY_END = (STRING_LIB_MAX - 1); // ŒÄ‹z“_‚ÌI’[‚ğ•\‚·’l
+const int STRING_END = (STRING_POS_MAX - 1); // é€£ã®çµ‚ç«¯ã‚’è¡¨ã™å€¤
+const int NEIGHBOR_END = (MAX_NEIGHBOR - 1);  // éš£æ¥ã™ã‚‹æ•µé€£ã®çµ‚ç«¯ã‚’è¡¨ã™å€¤
+const int LIBERTY_END = (STRING_LIB_MAX - 1); // å‘¼å¸ç‚¹ã®çµ‚ç«¯ã‚’è¡¨ã™å€¤
 
-constexpr int MAX_RECORDS = (PURE_BOARD_MAX * 3); // ‹L˜^‚·‚é’…è‚ÌÅ‘å” 
-constexpr int MAX_MOVES = (MAX_RECORDS - 1);      // ’…è”‚ÌÅ‘å’l
+const int MAX_RECORDS = (PURE_BOARD_MAX * 3); // è¨˜éŒ²ã™ã‚‹ç€æ‰‹ã®æœ€å¤§æ•° 
+const int MAX_MOVES = (MAX_RECORDS - 1);      // ç€æ‰‹æ•°ã®æœ€å¤§å€¤
 
-constexpr int PASS = 0;     // ƒpƒX‚É‘Š“–‚·‚é’l
-constexpr int RESIGN = -1;  // “Š—¹‚É‘Š“–‚·‚é’l
+const int PASS = 0;     // ãƒ‘ã‚¹ã«ç›¸å½“ã™ã‚‹å€¤
+const int RESIGN = -1;  // æŠ•äº†ã«ç›¸å½“ã™ã‚‹å€¤
 
-constexpr double KOMI = 6.5; // ƒfƒtƒHƒ‹ƒg‚ÌƒRƒ~‚Ì’l
+const double KOMI = 6.5; // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®ã‚³ãƒŸã®å€¤
 
 //////////////////
-//  ƒ}ƒNƒŠÖ”  //
+//  ãƒã‚¯ãƒ­é–¢æ•°  //
 //////////////////
-#define POS(x, y) ((x) + (y) * board_size)  // (x, y)‚©‚çÀ•W‚ğ“±o
-#define X(pos)        ((pos) % board_size)  // pos‚ÌxÀ•W‚Ì“±o
-#define Y(pos)        ((pos) / board_size)  // pos‚ÌyÀ•W‚Ì“±o
+#define POS(x, y) ((x) + (y) * board_size)  // (x, y)ã‹ã‚‰åº§æ¨™ã‚’å°å‡º
+#define X(pos)        ((pos) % board_size)  // posã®xåº§æ¨™ã®å°å‡º
+#define Y(pos)        ((pos) / board_size)  // posã®yåº§æ¨™ã®å°å‡º
 
-#define CORRECT_X(pos) ((pos) % board_size - OB_SIZE + 1)  // ÀÛ‚Ì”Õã‚ÌxÀ•W
-#define CORRECT_Y(pos) ((pos) / board_size - OB_SIZE + 1)  // ÀÛ‚Ì”Õã‚ÌyÀ•W
+#define CORRECT_X(pos) ((pos) % board_size - OB_SIZE + 1)  // å®Ÿéš›ã®ç›¤ä¸Šã®xåº§æ¨™
+#define CORRECT_Y(pos) ((pos) / board_size - OB_SIZE + 1)  // å®Ÿéš›ã®ç›¤ä¸Šã®yåº§æ¨™
 
-#define NORTH(pos) ((pos) - board_size)  // pos‚Ìã‚ÌÀ•W
-#define  WEST(pos) ((pos) - 1)           // pos‚Ì¶‚ÌÀ•W
-#define  EAST(pos) ((pos) + 1)           // pos‚Ì‰E‚ÌÀ•W
-#define SOUTH(pos) ((pos) + board_size)  // pos‚Ì‰º‚ÌÀ•W
+#define NORTH(pos) ((pos) - board_size)  // posã®ä¸Šã®åº§æ¨™
+#define  WEST(pos) ((pos) - 1)           // posã®å·¦ã®åº§æ¨™
+#define  EAST(pos) ((pos) + 1)           // posã®å³ã®åº§æ¨™
+#define SOUTH(pos) ((pos) + board_size)  // posã®ä¸‹ã®åº§æ¨™
 
-#define NORTH_WEST(pos) ((pos) - board_size - 1)
-#define NORTH_EAST(pos) ((pos) - board_size + 1)
-#define SOUTH_WEST(pos) ((pos) + board_size - 1)
-#define SOUTH_EAST(pos) ((pos) + board_size + 1)
+#define FLIP_COLOR(col) ((col) ^ 0x3) // è‰²ã®åè»¢
 
-#define FLIP_COLOR(col) ((col) ^ 0x3) // F‚Ì”½“]
-
-
-#define DX(pos1, pos2)  (abs(board_x[(pos1)] - board_x[(pos2)]))     // x•ûŒü‚Ì‹——£
-#define DY(pos1, pos2)  (abs(board_y[(pos1)] - board_y[(pos2)]))     // y•ûŒü‚Ì‹——£
-#define DIS(pos1, pos2) (move_dis[DX(pos1, pos2)][DY(pos1, pos2)])   // ’…è‹——£
+#define DX(pos1, pos2)  (abs(board_x[(pos1)] - board_x[(pos2)]))     // xæ–¹å‘ã®è·é›¢
+#define DY(pos1, pos2)  (abs(board_y[(pos1)] - board_y[(pos2)]))     // yæ–¹å‘ã®è·é›¢
+#define DIS(pos1, pos2) (move_dis[DX(pos1, pos2)][DY(pos1, pos2)])   // ç€æ‰‹è·é›¢
 
 
 enum stone {
-	S_EMPTY,  // ‹ó“_
-	S_BLACK,  // •Î
-	S_WHITE,  // ”’Î
-	S_OB,     // ”ÕŠO
-	S_MAX     // ”Ô•º
+  S_EMPTY,  // ç©ºç‚¹
+  S_BLACK,  // é»’çŸ³
+  S_WHITE,  // ç™½çŸ³
+  S_OB,     // ç›¤å¤–
+  S_MAX     // ç•ªå…µ
 };
 
-// ’…è‚ğ‹L˜^‚·‚é\‘¢‘Ì
-struct move {
-	int color;  // ’…è‚µ‚½Î‚ÌF
-	int pos;    // ’…è‰ÓŠ‚ÌÀ•W
+enum eye_condition_t : unsigned char {
+  E_NOT_EYE,           // çœ¼ã§ãªã„
+  E_COMPLETE_HALF_EYE, // å®Œå…¨ã«æ¬ ã‘çœ¼(8è¿‘å‚ã«æ‰“ã£ã¦1çœ¼ã«ã§ããªã„)
+  E_HALF_3_EYE,        // æ¬ ã‘çœ¼ã§ã‚ã‚‹ãŒ, 3æ‰‹ã§1çœ¼ã«ã§ãã‚‹
+  E_HALF_2_EYE,        // æ¬ ã‘çœ¼ã§ã‚ã‚‹ãŒ, 2æ‰‹ã§1çœ¼ã«ã§ãã‚‹
+  E_HALF_1_EYE,        // æ¬ ã‘çœ¼ã§ã‚ã‚‹ãŒ, 1æ‰‹ã§1çœ¼ã«ã§ãã‚‹
+  E_COMPLETE_ONE_EYE,  // å®Œå…¨ãª1çœ¼
+  E_MAX,
 };
 
-// ˜A‚ğ•\‚·\‘¢‘Ì (19x19 : 1987bytes)
-typedef struct {
-	char color;                    // ˜A‚ÌF
-	int libs;                      // ˜A‚Ì‚ÂŒÄ‹z“_”
-	short lib[STRING_LIB_MAX];     // ˜A‚Ì‚ÂŒÄ‹z“_‚ÌÀ•W
-	int neighbors;                 // —×Ú‚·‚é“G‚Ì˜A‚Ì”
-	short neighbor[MAX_NEIGHBOR];  // —×Ú‚·‚é“G‚Ì˜A‚Ì˜A”Ô†
-	int origin;                    // ˜A‚Ìn“_‚ÌÀ•W
-	int size;                      // ˜A‚ğ\¬‚·‚éÎ‚Ì”
-	bool flag;                     // ˜A‚Ì‘¶İƒtƒ‰ƒO
-} string_t;
+// ç€æ‰‹ã‚’è¨˜éŒ²ã™ã‚‹æ§‹é€ ä½“
+struct record_t {
+  int color;                // ç€æ‰‹ã—ãŸçŸ³ã®è‰²
+  int pos;                  // ç€æ‰‹ç®‡æ‰€ã®åº§æ¨™
+  unsigned long long hash;  // å±€é¢ã®ãƒãƒƒã‚·ãƒ¥å€¤
+};
+
+// é€£ã‚’è¡¨ã™æ§‹é€ ä½“ (19x19 : 1987bytes)
+struct string_t {
+  char color;                    // é€£ã®è‰²
+  int libs;                      // é€£ã®æŒã¤å‘¼å¸ç‚¹æ•°
+  short lib[STRING_LIB_MAX];     // é€£ã®æŒã¤å‘¼å¸ç‚¹ã®åº§æ¨™
+  int neighbors;                 // éš£æ¥ã™ã‚‹æ•µã®é€£ã®æ•°
+  short neighbor[MAX_NEIGHBOR];  // éš£æ¥ã™ã‚‹æ•µã®é€£ã®é€£ç•ªå·
+  int origin;                    // é€£ã®å§‹ç‚¹ã®åº§æ¨™
+  int size;                      // é€£ã‚’æ§‹æˆã™ã‚‹çŸ³ã®æ•°
+  bool flag;                     // é€£ã®å­˜åœ¨ãƒ•ãƒ©ã‚°
+};
 
 
-// ‹Ç–Ê‚ğ•\‚·\‘¢‘Ì
-typedef struct {
-	struct move record[MAX_RECORDS];  // ’…è‰ÓŠ‚ÆF‚Ì‹L˜^
-	int moves;                        // ’…è”‚Ì‹L˜^
-	int prisoner[S_MAX];              // ƒAƒQƒnƒ}
-	int ko_pos;                       // …‚Æ‚È‚Á‚Ä‚¢‚é‰ÓŠ
-	int ko_move;                      // …‚Æ‚È‚Á‚½‚Ì’…è”
+// å±€é¢ã‚’è¡¨ã™æ§‹é€ ä½“
+struct game_info_t {
+  record_t record[MAX_RECORDS];  // ç€æ‰‹ç®‡æ‰€ã¨è‰²ã®è¨˜éŒ²
+  int moves;                        // ç€æ‰‹æ•°ã®è¨˜éŒ²
+  int prisoner[S_MAX];              // ã‚¢ã‚²ãƒãƒ
+  int ko_pos;                       // åŠ«ã¨ãªã£ã¦ã„ã‚‹ç®‡æ‰€
+  int ko_move;                      // åŠ«ã¨ãªã£ãŸæ™‚ã®ç€æ‰‹æ•°
 
-	unsigned long long current_hash;     // Œ»İ‚Ì‹Ç–Ê‚ÌƒnƒbƒVƒ…’l
-	unsigned long long previous1_hash;   // 1è‘O‚Ì‹Ç–Ê‚ÌƒnƒbƒVƒ…’l
-	unsigned long long previous2_hash;   // 2è‘O‚Ì‹Ç–Ê‚ÌƒnƒbƒVƒ…’l
+  unsigned long long current_hash;     // ç¾åœ¨ã®å±€é¢ã®ãƒãƒƒã‚·ãƒ¥å€¤
+  unsigned long long previous1_hash;   // 1æ‰‹å‰ã®å±€é¢ã®ãƒãƒƒã‚·ãƒ¥å€¤
+  unsigned long long previous2_hash;   // 2æ‰‹å‰ã®å±€é¢ã®ãƒãƒƒã‚·ãƒ¥å€¤
+  unsigned long long positional_hash;  // å±€é¢ã®ãƒãƒƒã‚·ãƒ¥å€¤(çŸ³ã®ä½ç½®ã®ã¿)
+  unsigned long long move_hash;        // ç€æ‰‹åˆ—ã®ãƒãƒƒã‚·ãƒ¥å€¤(åˆæµãªã—)
+  
+  char board[BOARD_MAX];            // ç›¤é¢ 
 
-	char board[BOARD_MAX];            // ”Õ–Ê 
+  int pass_count;                   // ãƒ‘ã‚¹ã—ãŸå›æ•°
 
-	int pass_count;                   // ƒpƒX‚µ‚½‰ñ”
+  pattern_t pat[BOARD_MAX];    // å‘¨å›²ã®çŸ³ã®é…ç½® 
 
-	pattern pat[BOARD_MAX];    // üˆÍ‚ÌÎ‚Ì”z’u 
+  string_t string[MAX_STRING];        // é€£ã®ãƒ‡ãƒ¼ã‚¿(19x19 : 573,845bytes)
+  int string_id[STRING_POS_MAX];    // å„åº§æ¨™ã®é€£ã®ID
+  int string_next[STRING_POS_MAX];  // é€£ã‚’æ§‹æˆã™ã‚‹çŸ³ã®ãƒ‡ãƒ¼ã‚¿æ§‹é€ 
 
-	string_t string[MAX_STRING];        // ˜A‚Ìƒf[ƒ^(19x19 : 573,845bytes)
-	int string_id[STRING_POS_MAX];    // ŠeÀ•W‚Ì˜A‚ÌID
-	int string_next[STRING_POS_MAX];  // ˜A‚ğ\¬‚·‚éÎ‚Ìƒf[ƒ^\‘¢
+  bool candidates[BOARD_MAX];  // å€™è£œæ‰‹ã‹ã©ã†ã‹ã®ãƒ•ãƒ©ã‚° 
+  bool seki[BOARD_MAX];
+  
+  unsigned int tactical_features1[BOARD_MAX];  // æˆ¦è¡“çš„ç‰¹å¾´ 
+  unsigned int tactical_features2[BOARD_MAX];  // æˆ¦è¡“çš„ç‰¹å¾´ 
 
-	bool candidates[BOARD_MAX];  // Œó•âè‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO 
+  int capture_num[S_OB];                   // å‰ã®ç€æ‰‹ã§æ‰“ã¡ä¸Šã’ãŸçŸ³ã®æ•°
+  int capture_pos[S_OB][PURE_BOARD_MAX];   // å‰ã®ç€æ‰‹ã§çŸ³ã‚’æ‰“ã¡ä¸Šã’ãŸåº§æ¨™ 
 
-	unsigned int tactical_features1[BOARD_MAX];  // íp“I“Á’¥ 
-	unsigned int tactical_features2[BOARD_MAX];  // íp“I“Á’¥ 
+  int update_num[S_OB];                    // æˆ¦è¡“çš„ç‰¹å¾´ãŒæ›´æ–°ã•ã‚ŒãŸæ•°
+  int update_pos[S_OB][PURE_BOARD_MAX];    // æˆ¦è¡“çš„ç‰¹å¾´ãŒæ›´æ–°ã•ã‚ŒãŸåº§æ¨™ 
 
-	int capture_num[S_OB];                   // ‘O‚Ì’…è‚Å‘Å‚¿ã‚°‚½Î‚Ì”
-	int capture_pos[S_OB][PURE_BOARD_MAX];   // ‘O‚Ì’…è‚ÅÎ‚ğ‘Å‚¿ã‚°‚½À•W 
-
-	int update_num[S_OB];                    // íp“I“Á’¥‚ªXV‚³‚ê‚½”
-	int update_pos[S_OB][PURE_BOARD_MAX];    // íp“I“Á’¥‚ªXV‚³‚ê‚½À•W 
-
-	long long rate[2][BOARD_MAX];           // ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“‚ÌŠeÀ•W‚ÌƒŒ[ƒg 
-	long long sum_rate_row[2][BOARD_SIZE];  // ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“‚ÌŠe—ñ‚ÌƒŒ[ƒg‚Ì‡Œv’l  
-	long long sum_rate[2];                  // ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“‚Ì‘S‘Ì‚ÌƒŒ[ƒg‚Ì‡Œv’l
-} game_info_t;
+  long long rate[2][BOARD_MAX];           // ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³æ™‚ã®å„åº§æ¨™ã®ãƒ¬ãƒ¼ãƒˆ 
+  long long sum_rate_row[2][BOARD_SIZE];  // ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³æ™‚ã®å„åˆ—ã®ãƒ¬ãƒ¼ãƒˆã®åˆè¨ˆå€¤  
+  long long sum_rate[2];                  // ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³æ™‚ã®å…¨ä½“ã®ãƒ¬ãƒ¼ãƒˆã®åˆè¨ˆå€¤
+};
 
 
 ////////////////
-//    •Ï”    //
+//    å¤‰æ•°    //
 ////////////////
 
-
+// ç¢ç›¤ã®å¤§ãã•
 extern int pure_board_size;
 
+// ç¢ç›¤ã®äº¤ç‚¹ã®å€‹æ•°
 extern int pure_board_max;
 
+// ç¢ç›¤ã®å¤§ãã•(ç›¤å¤–è¾¼ã¿)
 extern int board_size;
 
+// ç¢ç›¤ã®äº¤ç‚¹ã®å€‹æ•°(ç›¤å¤–è¾¼ã¿)
 extern int board_max;
 
+// ç¢ç›¤ã®å³ç«¯(ä¸Šç«¯)
 extern int board_start;
 
+// ç¢ç›¤ã®å·¦ç«¯(ä¸‹ç«¯)
 extern int board_end;
 
-// ƒRƒ~
+// åˆæ‰‹ã®å€™è£œæ‰‹ã®å€‹æ•°
+extern int first_move_candidates;
+
+// ã‚³ãƒŸ
 extern double komi[S_OB];
 
 // Dynamic Komi
 extern double dynamic_komi[S_OB];
 
-// ”Õã‚ÌˆÊ’u‚ÌID
-extern int board_pos_id[BOARD_MAX];
+// ç›¤ä¸Šã®ä½ç½®ã®ID
+extern int board_pos_id[BOARD_MAX];  
 
-// ”Õã‚ÌxÀ•W
-extern int board_x[BOARD_MAX];
+// ç›¤ä¸Šã®xåº§æ¨™
+extern int board_x[BOARD_MAX];  
 
-//  ”Õã‚ÌyÀ•W
-extern int board_y[BOARD_MAX];
+//  ç›¤ä¸Šã®yåº§æ¨™
+extern int board_y[BOARD_MAX];  
 
-// Šá‚Ìƒpƒ^[ƒ“
+// çœ¼ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
 extern unsigned char eye[PAT3_MAX];
 
-// —Ì’n‚Ìƒpƒ^[ƒ“
+// é ˜åœ°ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
 extern unsigned char territory[PAT3_MAX];
 
-// ã‰º¶‰E4‹ß–T‚Ì‹ó“_‚Ì”
+// ä¸Šä¸‹å·¦å³4è¿‘å‚ã®ç©ºç‚¹ã®æ•°
 extern unsigned char nb4_empty[PAT3_MAX];
 
-// üˆÍ‚ÉÎ‚Ì‚È‚¢ƒpƒ^[ƒ“
-extern bool empty_pat[PAT3_MAX];
+// çœ¼ã®çŠ¶æ…‹
+extern eye_condition_t eye_condition[PAT3_MAX];
 
-// x•ûŒü‚Ì‹——£
-extern int border_dis_x[BOARD_MAX];
+// xæ–¹å‘ã®è·é›¢
+extern int border_dis_x[BOARD_MAX]; 
 
-// y•ûŒü‚Ì‹——£
-extern int border_dis_y[BOARD_MAX];
+// yæ–¹å‘ã®è·é›¢
+extern int border_dis_y[BOARD_MAX]; 
 
-// ’…è‹——£
+// ç€æ‰‹è·é›¢
 extern int move_dis[PURE_BOARD_SIZE][PURE_BOARD_SIZE];
 
-// ”Õã‚ÌˆÊ’u‚©‚çƒf[ƒ^ã‚ÌˆÊ’u‚Ì‘Î‰
+// ç›¤ä¸Šã®ä½ç½®ã‹ã‚‰ãƒ‡ãƒ¼ã‚¿ä¸Šã®ä½ç½®ã®å¯¾å¿œ
 extern int onboard_pos[PURE_BOARD_MAX];
 
+// åˆæ‰‹ã®å€™è£œæ‰‹
+extern int first_move_candidate[PURE_BOARD_MAX];
+
 //////////////
-//   ŠÖ”   //
+//   é–¢æ•°   //
 //////////////
 
-// ”Õ‚Ì‘å‚«‚³‚Ìİ’è
-void SetBoardSize(int size);
+// è¶…åŠ«ã®è¨­å®š
+void SetSuperKo( const bool flag );
 
-// ƒƒ‚ƒŠ—Ìˆæ‚ÌŠm•Û
-game_info_t *AllocateGame(void);
+// ç›¤ã®å¤§ãã•ã®è¨­å®š
+void SetBoardSize( const int size );
 
-// ƒƒ‚ƒŠ—Ìˆæ‚Ì‰ğ•ú
-void FreeGame(game_info_t *game);
+// ãƒ¡ãƒ¢ãƒªé ˜åŸŸã®ç¢ºä¿
+game_info_t *AllocateGame( void );
 
-// ”Õ–Êî•ñ‚ÌƒRƒs[
-void CopyGame(game_info_t *dst, game_info_t *src);
+// ãƒ¡ãƒ¢ãƒªé ˜åŸŸã®è§£æ”¾
+void FreeGame( game_info_t *game );
 
-// ’è”‚Ì‰Šú‰»
-void InitializeConst(void);
+// ç›¤é¢æƒ…å ±ã®ã‚³ãƒ”ãƒ¼
+void CopyGame( game_info_t *dst, const game_info_t *src );
 
-// ”Õ–Ê‚Ì‰Šú‰»
-void InitializeBoard(game_info_t *game);
+// å®šæ•°ã®åˆæœŸåŒ–
+void InitializeConst( void );
 
-// ‡–@è”»’è
-// ‡–@è‚È‚ç‚Îtrue‚ğ•Ô‚·
-bool IsLegal(game_info_t *game, int pos, int color);
+// ç›¤é¢ã®åˆæœŸåŒ–
+void InitializeBoard( game_info_t *game );
 
-// ‡–@è‚©‚ÂŠá‚Å‚È‚¢‚©”»’è
-// ‡–@è‚©‚ÂŠá‚Å‚È‚¯‚ê‚Îtrue‚ğ•Ô‚·
-bool IsLegalNotEye(game_info_t *game, int pos, int color);
+// åˆæ³•æ‰‹åˆ¤å®š
+// åˆæ³•æ‰‹ãªã‚‰ã°trueã‚’è¿”ã™
+bool IsLegal( const game_info_t *game, const int pos, const int color );
 
-// ©Eè”»’è
-// ©Eè‚È‚ç‚Îtrue‚ğ•Ô‚·
-bool IsSuicide(game_info_t *game, string_t *string, int color, int pos);
+// åˆæ³•æ‰‹ã‹ã¤çœ¼ã§ãªã„ã‹åˆ¤å®š
+// åˆæ³•æ‰‹ã‹ã¤çœ¼ã§ãªã‘ã‚Œã°trueã‚’è¿”ã™
+bool IsLegalNotEye( game_info_t *game, const int pos, const int color );
 
-// Î‚ğ’u‚­
-void PutStone(game_info_t *game, int pos, int color);
+// è‡ªæ®ºæ‰‹åˆ¤å®š
+// è‡ªæ®ºæ‰‹ãªã‚‰ã°trueã‚’è¿”ã™
+bool IsSuicide( const game_info_t *game, const string_t *string, const int color, const int pos );
 
-// Î‚ğ’u‚­(ƒvƒŒƒCƒAƒEƒg—p)
-void PoPutStone(game_info_t *game, int pos, int color);
+// çŸ³ã‚’ç½®ã
+void PutStone( game_info_t *game, const int pos, const int color );
 
-// ‹÷‚Ìƒ}ƒKƒŠl–Ú‚ÌŠm”F
-void CheckBentFourInTheCorner(game_info_t *game);
+// çŸ³ã‚’ç½®ã(ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆç”¨)
+void PoPutStone( game_info_t *game, const int pos, const int color );
 
-// ƒXƒRƒA‚Ì”»’è
-int CalculateScore(game_info_t *game);
+// ã‚¹ã‚³ã‚¢ã®åˆ¤å®š
+int CalculateScore( game_info_t *game );
 
-// ƒRƒ~‚Ì’l‚Ìİ’è
-void SetKomi(double new_komi);
+// ã‚³ãƒŸã®å€¤ã®è¨­å®š
+void SetKomi( const double new_komi );
 
-// ã‰º¶‰E‚ÌÀ•W‚ÌŒvZ
-void GetNeighbor4(int neighbor4[4], int pos);
+// ä¸Šä¸‹å·¦å³ã®åº§æ¨™ã®è¨ˆç®—
+void GetNeighbor4( int neighbor4[4], const int pos );
+
+#endif

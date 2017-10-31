@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <cstdio>
 #include <cstring>
@@ -7,7 +7,7 @@
 #include "Pattern.h"
 
 
-//  ƒrƒbƒg—ñ‘€ì
+//  ãƒ“ãƒƒãƒˆåˆ—æ“ä½œ
 #define REV18(p) (((p) >> 36) | (((p) & 0x3) << 36))
 #define REV16(p) (((p) >> 32) | (((p) & 0x3) << 32))
 #define REV14(p) (((p) >> 28) | (((p) & 0x3) << 28))
@@ -21,7 +21,7 @@
 #define REV3(p) (((p) >> 4) | ((p) & 0xC) | (((p) & 0x3) << 4))
 #define REV(p) (((p) >> 2) | (((p) & 0x3) << 2))
 
-//  ‹ß–T‚ÌÀ•W
+//  è¿‘å‚ã®åº§æ¨™
 #define N   (-board_size)
 #define S   (board_size)
 #define E   (1)
@@ -37,11 +37,11 @@
 
 
 //////////////////////
-//  ƒOƒ[ƒoƒ‹•Ï”  //
+//  ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°  //
 //////////////////////
 
-//  XV—pƒrƒbƒgƒ}ƒXƒN
-static unsigned int update_mask[40][3] = {
+//  æ›´æ–°ç”¨ãƒ“ãƒƒãƒˆãƒã‚¹ã‚¯
+static const unsigned int update_mask[40][3] = {
   //  3x3
   { 0, 0x00004000, 0x00008000 }, //  1->8
   { 0, 0x00001000, 0x00002000 }, //  2->7
@@ -93,7 +93,7 @@ static unsigned int update_mask[40][3] = {
 
 
 
-static unsigned long long large_mask[][3] = {
+static const unsigned long long large_mask[][3] = {
   // md5 
   { 0, 0x0000000000100000, 0x0000000000200000 },
   { 0, 0x0000000000400000, 0x0000000000800000 },
@@ -119,145 +119,147 @@ static unsigned long long large_mask[][3] = {
 
 
 ////////////////
-//  ‰Šúİ’è  //
+//  åˆæœŸè¨­å®š  //
 ////////////////
-void ClearPattern( pattern *pat ) {
-	int y;
+void
+ClearPattern( pattern_t *pat )
+{
+  int y;
 
-  memset(pat, 0, sizeof(struct pattern) * board_max); 
+  memset(pat, 0, sizeof(pattern_t) * board_max); 
 
   for (y = board_start; y <= board_end; y++){
-    // 1ü
-    // ã
+    // 1ç·š
+    // ä¸Š
     pat[POS(y, board_start)].list[MD_2] |= 0x0003003F;	// 1 2 3 9
     pat[POS(y, board_start)].list[MD_3] |= 0x00F0003F;	// 13 14 15 23 24
     pat[POS(y, board_start)].list[MD_4] |= 0xFC0000FF;	// 25 26 27 28 38 39 40
     pat[POS(y, board_start)].large_list[MD_5] |= 0xFF000003FF;
-    // ‰E
+    // å³
     pat[POS(board_end, y)].list[MD_2] |= 0x000CC330;	// 3 5 8 10
     pat[POS(board_end, y)].list[MD_3] |= 0x00000FFC;	// 14 15 16 17 18
     pat[POS(board_end, y)].list[MD_4] |= 0x0000FFFC;	// 26 27 28 29 30 31 32
     pat[POS(board_end, y)].large_list[MD_5] |= 0x00000FFFFC;
-    // ‰º
+    // ä¸‹
     pat[POS(y, board_end)].list[MD_2] |= 0x0030FC00;	// 6 7 8 11
     pat[POS(y, board_end)].list[MD_3] |= 0x0003FF00;	// 17 18 19 20 21
     pat[POS(y, board_end)].list[MD_4] |= 0x00FFFC00;	// 30 31 32 33 34 35 36
     pat[POS(y, board_end)].large_list[MD_5] |= 0x003FFFF000;
-    // ¶
+    // å·¦
     pat[POS(board_start, y)].list[MD_2] |= 0x00C00CC3;	// 1 4 6 12
     pat[POS(board_start, y)].list[MD_3] |= 0x00FFC000;	// 20 21 22 23 24
     pat[POS(board_start, y)].list[MD_4] |= 0xFFFC0000;	// 34 35 36 37 38 39 40
     pat[POS(board_start, y)].large_list[MD_5] |= 0xFFFFC00000;
 
-    // 2ü
-    // ã
+    // 2ç·š
+    // ä¸Š
     pat[POS(y, board_start + 1)].list[MD_2] |= 0x00030000;	// 9
     pat[POS(y, board_start + 1)].list[MD_3] |= 0x00C0000F;	// 13 14 24
     pat[POS(y, board_start + 1)].list[MD_4] |= 0xF000003F;	// 25 26 27 39 40
     pat[POS(y, board_start + 1)].large_list[MD_5] |= 0xFC000000FF;
-    // ‰E
+    // å³
     pat[POS(board_end - 1, y)].list[MD_2] |= 0x000C0000;	// 10
     pat[POS(board_end - 1, y)].list[MD_3] |= 0x000003F0;	// 15 16 17
     pat[POS(board_end - 1, y)].list[MD_4] |= 0x00003FF0;	// 27 28 29 30 31
     pat[POS(board_end - 1, y)].large_list[MD_5] |= 0x000003FFF0;
-    // ‰º
+    // ä¸‹
     pat[POS(y, board_end - 1)].list[MD_2] |= 0x00300000;	// 11
     pat[POS(y, board_end - 1)].list[MD_3] |= 0x0000FC00;	// 18 19 20
     pat[POS(y, board_end - 1)].list[MD_4] |= 0x003FF000;	// 31 32 33 34 35
     pat[POS(y, board_end - 1)].large_list[MD_5] |= 0x000FFFC000;
-    // ¶
+    // å·¦
     pat[POS(board_start + 1, y)].list[MD_2] |= 0x00C00000;	// 12
     pat[POS(board_start + 1, y)].list[MD_3] |= 0x003F0000;	// 21 22 23
     pat[POS(board_start + 1, y)].list[MD_4] |= 0x3FF00000;	// 35 36 37 38 39
     pat[POS(board_start + 1, y)].large_list[MD_5] |= 0x3FFF000000;
 
-    // 3ü
-    // ã
+    // 3ç·š
+    // ä¸Š
     pat[POS(y, board_start + 2)].list[MD_3] |= 0x00000003;	// 13
     pat[POS(y, board_start + 2)].list[MD_4] |= 0xC000000F;	// 25 26 40
     pat[POS(y, board_start + 2)].large_list[MD_5] |= 0xF00000003F;
-    // ‰E
+    // å³
     pat[POS(board_end - 2, y)].list[MD_3] |= 0x000000C0;	// 16
     pat[POS(board_end - 2, y)].list[MD_4] |= 0x00000FC0;	// 28 29 30
     pat[POS(board_end - 2, y)].large_list[MD_5] |= 0x000000FFC0;
-    // ‰º
+    // ä¸‹
     pat[POS(y, board_end - 2)].list[MD_3] |= 0x00003000;	// 19
     pat[POS(y, board_end - 2)].list[MD_4] |= 0x000FC000;	// 32 33 34
     pat[POS(y, board_end - 2)].large_list[MD_5] |= 0x0003FF0000;
-    // ¶
+    // å·¦
     pat[POS(board_start + 2, y)].list[MD_3] |= 0x000C0000;	// 22
     pat[POS(board_start + 2, y)].list[MD_4] |= 0x0FC00000;	// 36 37 38
     pat[POS(board_start + 2, y)].large_list[MD_5] |= 0x0FFC000000;
 
-    // 4ü 
-    // ã
+    // 4ç·š 
+    // ä¸Š
     pat[POS(y, board_start + 3)].list[MD_4] |= 0x00000003;	// 25
     pat[POS(y, board_start + 3)].large_list[MD_5] |= 0xC00000000F;
-    // ‰E
+    // å³
     pat[POS(board_end - 3, y)].list[MD_4] |= 0x00000300;	// 29
     pat[POS(board_end - 3, y)].large_list[MD_5] |= 0x0000003F00;
-    // ‰º
+    // ä¸‹
     pat[POS(y, board_end - 3)].list[MD_4] |= 0x00030000;	// 33
     pat[POS(y, board_end - 3)].large_list[MD_5] |= 0x0000FC0000;
-    // ¶
+    // å·¦
     pat[POS(board_start + 3, y)].list[MD_4] |= 0x03000000;	// 37
     pat[POS(board_start + 3, y)].large_list[MD_5] |= 0x03F0000000;
 
-    // 5ü
-    // ã
+    // 5ç·š
+    // ä¸Š
     pat[POS(y, board_start + 4)].large_list[MD_5] |= 0x0000000003;
-    // ‰E
+    // å³
     pat[POS(board_end - 4, y)].large_list[MD_5] |= 0x0000000C00;
-    // ‰º
+    // ä¸‹
     pat[POS(y, board_end - 4)].large_list[MD_5] |= 0x0000300000;
-    // ¶
+    // å·¦
     pat[POS(board_start + 4, y)].large_list[MD_5] |= 0x00C0000000;
   }
 }
 
 
 //////////////////////
-//  ƒpƒ^[ƒ“‚ÌXV  //
+//  ãƒ‘ã‚¿ãƒ¼ãƒ³ã®æ›´æ–°  //
 //////////////////////
 
 //  3x3
 void
-UpdatePat3Empty( struct pattern *pat, int pos )
+UpdatePat3Empty( pattern_t *pat, const int pos )
 {
   pat[pos + NW].list[MD_2] &= 0xFF3FFF;
-  pat[pos + N].list[MD_2] &= 0xFFCFFF;
+  pat[pos +  N].list[MD_2] &= 0xFFCFFF;
   pat[pos + NE].list[MD_2] &= 0xFFF3FF;
-  pat[pos + W].list[MD_2] &= 0xFFFCFF;
-  pat[pos + E].list[MD_2] &= 0xFFFF3F;
+  pat[pos +  W].list[MD_2] &= 0xFFFCFF;
+  pat[pos +  E].list[MD_2] &= 0xFFFF3F;
   pat[pos + SW].list[MD_2] &= 0xFFFFCF;
-  pat[pos + S].list[MD_2] &= 0xFFFFF3;
+  pat[pos +  S].list[MD_2] &= 0xFFFFF3;
   pat[pos + SE].list[MD_2] &= 0xFFFFFC;
 }
 
 void
-UpdatePat3Stone( struct pattern *pat, int color, int pos )
+UpdatePat3Stone( pattern_t *pat, const int color, const int pos )
 {
   pat[pos + NW].list[MD_2] |= update_mask[0][color];
-  pat[pos + N].list[MD_2] |= update_mask[1][color];
+  pat[pos +  N].list[MD_2] |= update_mask[1][color];
   pat[pos + NE].list[MD_2] |= update_mask[2][color];
-  pat[pos + W].list[MD_2] |= update_mask[3][color];
-  pat[pos + E].list[MD_2] |= update_mask[4][color];
+  pat[pos +  W].list[MD_2] |= update_mask[3][color];
+  pat[pos +  E].list[MD_2] |= update_mask[4][color];
   pat[pos + SW].list[MD_2] |= update_mask[5][color];
-  pat[pos + S].list[MD_2] |= update_mask[6][color];
+  pat[pos +  S].list[MD_2] |= update_mask[6][color];
   pat[pos + SE].list[MD_2] |= update_mask[7][color];
 }
 
 //  md2
 void
-UpdateMD2Empty( struct pattern *pat, int pos )
+UpdateMD2Empty( pattern_t *pat, const int pos )
 {
   pat[pos + NW].list[MD_2] &= 0xFF3FFF;
-  pat[pos + N].list[MD_2] &= 0xFFCFFF;
+  pat[pos +  N].list[MD_2] &= 0xFFCFFF;
   pat[pos + NE].list[MD_2] &= 0xFFF3FF;
-  pat[pos + W].list[MD_2] &= 0xFFFCFF;
-  pat[pos + E].list[MD_2] &= 0xFFFF3F;
+  pat[pos +  W].list[MD_2] &= 0xFFFCFF;
+  pat[pos +  E].list[MD_2] &= 0xFFFF3F;
   pat[pos + SW].list[MD_2] &= 0xFFFFCF;
-  pat[pos + S].list[MD_2] &= 0xFFFFF3;
+  pat[pos +  S].list[MD_2] &= 0xFFFFF3;
   pat[pos + SE].list[MD_2] &= 0xFFFFFC;
   pat[pos + NN].list[MD_2] &= 0xCFFFFF;
   pat[pos + EE].list[MD_2] &= 0x3FFFFF;
@@ -266,15 +268,15 @@ UpdateMD2Empty( struct pattern *pat, int pos )
 }
 
 void
-UpdateMD2Stone( struct pattern *pat, int color, int pos )
+UpdateMD2Stone( pattern_t *pat, const int color, const int pos )
 {
   pat[pos + NW].list[MD_2] |= update_mask[0][color];
-  pat[pos + N].list[MD_2] |= update_mask[1][color];
+  pat[pos +  N].list[MD_2] |= update_mask[1][color];
   pat[pos + NE].list[MD_2] |= update_mask[2][color];
-  pat[pos + W].list[MD_2] |= update_mask[3][color];
-  pat[pos + E].list[MD_2] |= update_mask[4][color];
+  pat[pos +  W].list[MD_2] |= update_mask[3][color];
+  pat[pos +  E].list[MD_2] |= update_mask[4][color];
   pat[pos + SW].list[MD_2] |= update_mask[5][color];
-  pat[pos + S].list[MD_2] |= update_mask[6][color];
+  pat[pos +  S].list[MD_2] |= update_mask[6][color];
   pat[pos + SE].list[MD_2] |= update_mask[7][color];
   pat[pos + NN].list[MD_2] |= update_mask[8][color];
   pat[pos + EE].list[MD_2] |= update_mask[9][color];
@@ -282,18 +284,18 @@ UpdateMD2Stone( struct pattern *pat, int color, int pos )
   pat[pos + WW].list[MD_2] |= update_mask[11][color];
 }
 
-//  ‘S•”
+//  å…¨éƒ¨
 void
-UpdatePatternEmpty( struct pattern *pat, int pos )
+UpdatePatternEmpty( pattern_t *pat, const int pos )
 {
   //  3x3 
   pat[pos + NW].list[MD_2] &= 0xFF3FFF;
-  pat[pos + N].list[MD_2] &= 0xFFCFFF;
+  pat[pos +  N].list[MD_2] &= 0xFFCFFF;
   pat[pos + NE].list[MD_2] &= 0xFFF3FF;
-  pat[pos + W].list[MD_2] &= 0xFFFCFF;
-  pat[pos + E].list[MD_2] &= 0xFFFF3F;
+  pat[pos +  W].list[MD_2] &= 0xFFFCFF;
+  pat[pos +  E].list[MD_2] &= 0xFFFF3F;
   pat[pos + SW].list[MD_2] &= 0xFFFFCF;
-  pat[pos + S].list[MD_2] &= 0xFFFFF3;
+  pat[pos +  S].list[MD_2] &= 0xFFFFF3;
   pat[pos + SE].list[MD_2] &= 0xFFFFFC;
 
   //  md2
@@ -358,16 +360,16 @@ UpdatePatternEmpty( struct pattern *pat, int pos )
 }
 
 void
-UpdatePatternStone( struct pattern *pat, int color, int pos )
+UpdatePatternStone( pattern_t *pat, const int color, const int pos )
 {
   //  3x3 
   pat[pos + NW].list[MD_2] |= update_mask[0][color];
-  pat[pos + N].list[MD_2] |= update_mask[1][color];
+  pat[pos +  N].list[MD_2] |= update_mask[1][color];
   pat[pos + NE].list[MD_2] |= update_mask[2][color];
-  pat[pos + W].list[MD_2] |= update_mask[3][color];
-  pat[pos + E].list[MD_2] |= update_mask[4][color];
+  pat[pos +  W].list[MD_2] |= update_mask[3][color];
+  pat[pos +  E].list[MD_2] |= update_mask[4][color];
   pat[pos + SW].list[MD_2] |= update_mask[5][color];
-  pat[pos + S].list[MD_2] |= update_mask[6][color];
+  pat[pos +  S].list[MD_2] |= update_mask[6][color];
   pat[pos + SE].list[MD_2] |= update_mask[7][color];
 
   //  md2
@@ -433,12 +435,12 @@ UpdatePatternStone( struct pattern *pat, int color, int pos )
 
 
 //////////////////////////
-//  “¯ˆêƒpƒ^[ƒ“‚ğ•Ô‚·  //
+//  åŒä¸€ãƒ‘ã‚¿ãƒ¼ãƒ³ã‚’è¿”ã™  //
 //////////////////////////
 
 //  3x3
 void
-Pat3Transpose8( unsigned int pat3, unsigned int *transp )
+Pat3Transpose8( const unsigned int pat3, unsigned int *transp )
 {
   transp[0] = pat3;
   transp[1] = Pat3VerticalMirror(pat3);
@@ -451,29 +453,17 @@ Pat3Transpose8( unsigned int pat3, unsigned int *transp )
 }
 
 void
-Pat3Transpose16( unsigned int pat3, unsigned int *transp )
+Pat3Transpose16( const unsigned int pat3, unsigned int *transp )
 {
-  transp[0] = pat3;
-  transp[1] = Pat3VerticalMirror(pat3);
-  transp[2] = Pat3HorizontalMirror(pat3);
-  transp[3] = Pat3VerticalMirror(transp[2]);
-  transp[4] = Pat3Rotate90(pat3);
-  transp[5] = Pat3Rotate90(transp[1]);
-  transp[6] = Pat3Rotate90(transp[2]);
-  transp[7] = Pat3Rotate90(transp[3]);
-  transp[8] = Pat3Reverse(transp[0]);
-  transp[9] = Pat3Reverse(transp[1]);
-  transp[10] = Pat3Reverse(transp[2]);
-  transp[11] = Pat3Reverse(transp[3]);
-  transp[12] = Pat3Reverse(transp[4]);
-  transp[13] = Pat3Reverse(transp[5]);
-  transp[14] = Pat3Reverse(transp[6]);
-  transp[15] = Pat3Reverse(transp[7]);
+  Pat3Transpose8(pat3, transp);
+  for (int i = 0; i < 8; i++) {
+    transp[i + 8] = Pat3Reverse(transp[i]);
+  }
 }
 
 //  md2
 void
-MD2Transpose8( unsigned int md2, unsigned int *transp )
+MD2Transpose8( const unsigned int md2, unsigned int *transp )
 {
   transp[0] = md2;
   transp[1] = MD2VerticalMirror(md2);
@@ -486,29 +476,17 @@ MD2Transpose8( unsigned int md2, unsigned int *transp )
 }
 
 void
-MD2Transpose16( unsigned int md2, unsigned int *transp )
+MD2Transpose16( const unsigned int md2, unsigned int *transp )
 {
-  transp[0] = md2;
-  transp[1] = MD2VerticalMirror(md2);
-  transp[2] = MD2HorizontalMirror(md2);
-  transp[3] = MD2VerticalMirror(transp[2]);
-  transp[4] = MD2Rotate90(md2);
-  transp[5] = MD2Rotate90(transp[1]);
-  transp[6] = MD2Rotate90(transp[2]);
-  transp[7] = MD2Rotate90(transp[3]);
-  transp[8] = MD2Reverse(transp[0]);
-  transp[9] = MD2Reverse(transp[1]);
-  transp[10] = MD2Reverse(transp[2]);
-  transp[11] = MD2Reverse(transp[3]);
-  transp[12] = MD2Reverse(transp[4]);
-  transp[13] = MD2Reverse(transp[5]);
-  transp[14] = MD2Reverse(transp[6]);
-  transp[15] = MD2Reverse(transp[7]);
+  MD2Transpose8(md2, transp);
+  for (int i = 0; i < 8; i++) {
+    transp[i + 8] = MD2Reverse(transp[i]);
+  }
 }
 
 //  md3
 void
-MD3Transpose8( unsigned int md3, unsigned int *transp )
+MD3Transpose8( const unsigned int md3, unsigned int *transp )
 {
   transp[0] = md3;
   transp[1] = MD3VerticalMirror(md3);
@@ -521,30 +499,18 @@ MD3Transpose8( unsigned int md3, unsigned int *transp )
 }
 
 void
-MD3Transpose16( unsigned int md3, unsigned int *transp )
+MD3Transpose16( const unsigned int md3, unsigned int *transp )
 {
-  transp[0] = md3;
-  transp[1] = MD3VerticalMirror(md3);
-  transp[2] = MD3HorizontalMirror(md3);
-  transp[3] = MD3VerticalMirror(transp[2]);
-  transp[4] = MD3Rotate90(md3);
-  transp[5] = MD3Rotate90(transp[1]);
-  transp[6] = MD3Rotate90(transp[2]);
-  transp[7] = MD3Rotate90(transp[3]);
-  transp[8] = MD3Reverse(transp[0]);
-  transp[9] = MD3Reverse(transp[1]);
-  transp[10] = MD3Reverse(transp[2]);
-  transp[11] = MD3Reverse(transp[3]);
-  transp[12] = MD3Reverse(transp[4]);
-  transp[13] = MD3Reverse(transp[5]);
-  transp[14] = MD3Reverse(transp[6]);
-  transp[15] = MD3Reverse(transp[7]);
+  MD3Transpose8(md3, transp);
+  for (int i = 0; i < 8; i++) {
+    transp[i + 8] = MD3Reverse(transp[i]);
+  }
 }
 
 
 //  md4
 void
-MD4Transpose8( unsigned int md4, unsigned int *transp )
+MD4Transpose8( const unsigned int md4, unsigned int *transp )
 {
   transp[0] = md4;
   transp[1] = MD4VerticalMirror(md4);
@@ -557,30 +523,18 @@ MD4Transpose8( unsigned int md4, unsigned int *transp )
 }
 
 void
-MD4Transpose16( unsigned int md4, unsigned int *transp )
+MD4Transpose16( const unsigned int md4, unsigned int *transp )
 {
-  transp[0] = md4;
-  transp[1] = MD4VerticalMirror(md4);
-  transp[2] = MD4HorizontalMirror(md4);
-  transp[3] = MD4VerticalMirror(transp[2]);
-  transp[4] = MD4Rotate90(md4);
-  transp[5] = MD4Rotate90(transp[1]);
-  transp[6] = MD4Rotate90(transp[2]);
-  transp[7] = MD4Rotate90(transp[3]);
-  transp[8] = MD4Reverse(transp[0]);
-  transp[9] = MD4Reverse(transp[1]);
-  transp[10] = MD4Reverse(transp[2]);
-  transp[11] = MD4Reverse(transp[3]);
-  transp[12] = MD4Reverse(transp[4]);
-  transp[13] = MD4Reverse(transp[5]);
-  transp[14] = MD4Reverse(transp[6]);
-  transp[15] = MD4Reverse(transp[7]);
+  MD4Transpose8(md4, transp);
+  for (int i = 0; i < 8; i++) {
+    transp[i + 8] = MD4Reverse(transp[i]);
+  }
 }
 
 
 //  md5
 void
-MD5Transpose8( unsigned long long md5, unsigned long long *transp )
+MD5Transpose8( const unsigned long long md5, unsigned long long *transp )
 {
   transp[0] = md5;
   transp[1] = MD5VerticalMirror(md5);
@@ -593,81 +547,69 @@ MD5Transpose8( unsigned long long md5, unsigned long long *transp )
 }
 
 void
-MD5Transpose16( unsigned long long md5, unsigned long long *transp )
+MD5Transpose16( const unsigned long long md5, unsigned long long *transp )
 {
-  transp[0] = md5;
-  transp[1] = MD5VerticalMirror(md5);
-  transp[2] = MD5HorizontalMirror(md5);
-  transp[3] = MD5VerticalMirror(transp[2]);
-  transp[4] = MD5Rotate90(md5);
-  transp[5] = MD5Rotate90(transp[1]);
-  transp[6] = MD5Rotate90(transp[2]);
-  transp[7] = MD5Rotate90(transp[3]);
-  transp[8] = MD5Reverse(transp[0]);
-  transp[9] = MD5Reverse(transp[1]);
-  transp[10] = MD5Reverse(transp[2]);
-  transp[11] = MD5Reverse(transp[3]);
-  transp[12] = MD5Reverse(transp[4]);
-  transp[13] = MD5Reverse(transp[5]);
-  transp[14] = MD5Reverse(transp[6]);
-  transp[15] = MD5Reverse(transp[7]);
+  MD5Transpose8(md5, transp);
+  for (int i = 0; i < 8; i++) {
+    transp[i + 8] = MD5Reverse(transp[i]);
+  }
 }
 
 
 ////////////////
-//  F‚Ì”½“]  //
+//  è‰²ã®åè»¢  //
 ////////////////
 
 //  3x3
 unsigned int
-Pat3Reverse( unsigned int pat3 )
+Pat3Reverse( const unsigned int pat3 )
 {
   return ((pat3 >> 1) & 0x5555) | ((pat3 & 0x5555) << 1);
 }
 
 //  md2
 unsigned int
-MD2Reverse( unsigned int md2 )
+MD2Reverse( const unsigned int md2 )
 {
   return ((md2 >> 1) & 0x555555) | ((md2 & 0x555555) << 1);
 }
 
 //  md3
 unsigned int
-MD3Reverse( unsigned int md3 )
+MD3Reverse( const unsigned int md3 )
 {
   return ((md3 >> 1) & 0x555555) | ((md3 & 0x555555) << 1);
 }
 
 //  md4
 unsigned int
-MD4Reverse( unsigned int md4 )
+MD4Reverse( const unsigned int md4 )
 {
   return ((md4 >> 1) & 0x55555555) | ((md4 & 0x55555555) << 1);
 }
 
 //  md5
 unsigned long long
-MD5Reverse( unsigned long long md5 )
+MD5Reverse( const unsigned long long md5 )
 {
   return ((md5 >> 1) & 0x5555555555) | ((md5 & 0x5555555555) << 1);
 }
 
 
 ////////////////
-//  ã‰º‘ÎÌ  //
+//  ä¸Šä¸‹å¯¾ç§°  //
 ////////////////
 
 //  3x3
 unsigned int
-Pat3VerticalMirror( unsigned int pat3 )
+Pat3VerticalMirror( const unsigned int pat3 )
 {
   return ((pat3 & 0xFC00) >> 10) | (pat3 & 0x03C0) | ((pat3 & 0x003F) << 10);
 }
 
 //  md2
 unsigned int
-MD2VerticalMirror( unsigned int md2 )
+MD2VerticalMirror( const unsigned int md2 )
 {
   return ((md2 & 0x00FC00) >> 10) | (md2 & 0x0003C0) | ((md2 & 0x00003F) << 10)
     | (REV2((md2 & 0x330000) >> 16) << 16)	// 9<->11
@@ -676,7 +618,7 @@ MD2VerticalMirror( unsigned int md2 )
 
 //  md3
 unsigned int
-MD3VerticalMirror( unsigned int md3 )
+MD3VerticalMirror( const unsigned int md3 )
 {
   return (REV6(md3 & 0x003003))				// 13<->19
     | (REV4((md3 & 0x000C0C) >> 2) << 2)	// 14<->18
@@ -689,7 +631,7 @@ MD3VerticalMirror( unsigned int md3 )
 
 //  md4
 unsigned int
-MD4VerticalMirror( unsigned int md4 )
+MD4VerticalMirror( const unsigned int md4 )
 {
   return (REV8(md4 & 0x00030003))					// 25<->33
     | (REV6((md4 & 0x0000C00C) >> 2) << 2)		// 26<->32
@@ -703,7 +645,7 @@ MD4VerticalMirror( unsigned int md4 )
 
 //  md5
 unsigned long long
-MD5VerticalMirror( unsigned long long md5 )
+MD5VerticalMirror( const unsigned long long md5 )
 {
   return (REV10(md5 & 0x0000300003))
     | (REV8((md5 & 0x00000C000C) >> 2) << 2)
@@ -718,12 +660,12 @@ MD5VerticalMirror( unsigned long long md5 )
 }
 
 ////////////////
-//  ¶‰E‘ÎÌ  //
+//  å·¦å³å¯¾ç§°  //
 ////////////////
 
 //  3x3
 unsigned int
-Pat3HorizontalMirror( unsigned int pat3 )
+Pat3HorizontalMirror( const unsigned int pat3 )
 {
   return (REV3((pat3 & 0xFC00) >> 10) << 10)
     | (REV((pat3 & 0x03C0) >> 6) << 6)
@@ -732,7 +674,7 @@ Pat3HorizontalMirror( unsigned int pat3 )
 
 //  md2
 unsigned int
-MD2HorizontalMirror( unsigned int md2 )
+MD2HorizontalMirror( const unsigned int md2 )
 {
   return (REV3((md2 & 0x00FC00) >> 10) << 10)
     | (REV((md2 & 0x0003C0) >> 6) << 6)
@@ -743,7 +685,7 @@ MD2HorizontalMirror( unsigned int md2 )
 
 //  md3
 unsigned int
-MD3HorizontalMirror( unsigned int md3 )
+MD3HorizontalMirror( const unsigned int md3 )
 {
   return (md3 & 0x003003)
     | (REV10((md3 & 0xC0000C) >> 2) << 2)	// 14<->24
@@ -755,7 +697,7 @@ MD3HorizontalMirror( unsigned int md3 )
 
 //  md4 
 unsigned int
-MD4HorizontalMirror( unsigned int md4 )
+MD4HorizontalMirror( const unsigned int md4 )
 {
   return (md4 & 0x00030003)
     | (REV14((md4 & 0xC000000C) >> 2) << 2)		// 26<->40
@@ -769,7 +711,7 @@ MD4HorizontalMirror( unsigned int md4 )
 
 //  md5 
 unsigned long long
-MD5HorizontalMirror( unsigned long long md5 )
+MD5HorizontalMirror( const unsigned long long md5 )
 {
   return (md5 & 0x0000300003)
     | (REV18((md5 & 0xC00000000C) >> 2) << 2)
@@ -785,12 +727,12 @@ MD5HorizontalMirror( unsigned long long md5 )
 
 
 ////////////////
-//  90“x‰ñ“]  //
+//  90åº¦å›è»¢  //
 ////////////////
 
-// @3x3
+// ã€€3x3
 unsigned int
-Pat3Rotate90( unsigned int pat3 )
+Pat3Rotate90( const unsigned int pat3 )
 {
   // 1 2 3    3 5 8
   // 4   5 -> 2   7
@@ -806,7 +748,7 @@ Pat3Rotate90( unsigned int pat3 )
 
 //  md2 
 unsigned int
-MD2Rotate90( unsigned int md2 )
+MD2Rotate90( const unsigned int md2 )
 {
   return ((md2 & 0x000003) << 10)
     | ((md2 & 0x000C0C) << 4)
@@ -819,7 +761,7 @@ MD2Rotate90( unsigned int md2 )
 
 //  md3
 unsigned int
-MD3Rotate90( unsigned int md3 )
+MD3Rotate90( const unsigned int md3 )
 {
   return ((md3 & 0x00003F) << 18)
     | ((md3 & 0xFFFFC0) >> 6);
@@ -827,7 +769,7 @@ MD3Rotate90( unsigned int md3 )
 
 //  md4
 unsigned int
-MD4Rotate90( unsigned int md4 )
+MD4Rotate90( const unsigned int md4 )
 {
   return ((md4 & 0x000000FF) << 24)
     | ((md4 & 0xFFFFFF00) >> 8);
@@ -835,33 +777,33 @@ MD4Rotate90( unsigned int md4 )
 
 //  md5
 unsigned long long
-MD5Rotate90( unsigned long long md5 )
+MD5Rotate90( const unsigned long long md5 )
 {
   return ((md5 & 0x00000003FF) << 30)
     | ((md5 & 0xFFFFFFFC00) >> 10);
 }
 
 //////////////////////
-//  ƒpƒ^[ƒ“‚ğ•Ô‚·  //
+//  ãƒ‘ã‚¿ãƒ¼ãƒ³ã‚’è¿”ã™  //
 //////////////////////
 
 //  3x3 
 unsigned int
-Pat3( struct pattern *pat, int pos )
+Pat3( const pattern_t *pat, const int pos )
 {
   return (pat[pos].list[MD_2] & 0xFFFF);
 }
 
 //  md2
 unsigned int
-MD2( struct pattern *pat, int pos )
+MD2( const pattern_t *pat, const int pos )
 {
   return (pat[pos].list[MD_2]);
 }
 
 //  md3
 unsigned int
-MD3( struct pattern *pat, int pos )
+MD3( const pattern_t *pat, const int pos )
 {
   return (pat[pos].list[MD_3]);
 }
@@ -869,25 +811,25 @@ MD3( struct pattern *pat, int pos )
 
 //  md4
 unsigned int
-MD4( struct pattern *pat, int pos )
+MD4( const pattern_t *pat, const int pos )
 {
   return (pat[pos].list[MD_4]);
 }
 
 //  md5
 unsigned long long
-MD5( struct pattern *pat, int pos )
+MD5( const pattern_t *pat, const int pos )
 {
   return (pat[pos].large_list[MD_5]);
 }
 
 ////////////////
-//  •\¦‚·‚é  //
+//  è¡¨ç¤ºã™ã‚‹  //
 ////////////////
 
 //  3x3
 void
-DisplayInputPat3( unsigned int pat3 )
+DisplayInputPat3( const unsigned int pat3 )
 {
   static char stone[] = { '+', '@', 'O', '#' };
 
@@ -899,7 +841,7 @@ DisplayInputPat3( unsigned int pat3 )
 
 //  md2
 void
-DisplayInputMD2( unsigned int md2 )
+DisplayInputMD2( const unsigned int md2 )
 {
   static char stone[] = { '+', '@', 'O', '#' };
 
@@ -913,7 +855,7 @@ DisplayInputMD2( unsigned int md2 )
 
 //  md3
 void
-DisplayInputMD3( unsigned int md3 )
+DisplayInputMD3( const unsigned int md3 )
 {
   static char stone[] = { '+', '@', 'O', '#' };
 
@@ -929,7 +871,7 @@ DisplayInputMD3( unsigned int md3 )
 
 //  md4
 void
-DisplayInputMD4( unsigned int md4 )
+DisplayInputMD4( const unsigned int md4 )
 {
   static char stone[] = { '+', '@', 'O', '#' };
 
@@ -947,7 +889,7 @@ DisplayInputMD4( unsigned int md4 )
 
 //  md5
 void
-DisplayInputMD5( unsigned long long md5 )
+DisplayInputMD5( const unsigned long long md5 )
 {
   static char stone[] = { '+', '@', 'O', '#' };
 
@@ -968,7 +910,7 @@ DisplayInputMD5( unsigned long long md5 )
 
 //  Pattern
 void
-DisplayInputPattern( struct pattern *pattern, int size )
+DisplayInputPattern( pattern_t *pattern, int size )
 {
   static char stone[] = { '+', '@', 'O', '#' };
   unsigned int md2, md3, md4;

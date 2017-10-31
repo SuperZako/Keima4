@@ -1,11 +1,10 @@
-#ifndef _NAKADE_H_
+ï»¿#ifndef _NAKADE_H_
 #define _NAKADE_H_
 
-#include "ZobristHash.h"
-
+#include "GoBoard.h"
 
 ////////////
-//  ’è”  //
+//  å®šæ•°  //
 ////////////
 
 const int NOT_NAKADE = -1;
@@ -13,43 +12,33 @@ const int NOT_NAKADE = -1;
 const int NAKADE_QUEUE_SIZE = 30;
 
 //////////////
-//  \‘¢‘Ì  //
+//  æ§‹é€ ä½“  //
 //////////////
-typedef struct {
+struct nakade_queue_t {
   int pos[NAKADE_QUEUE_SIZE];
   int head, tail;
-} nakade_queue_t;
+};
 
-
-// ƒiƒJƒf‚ÌƒnƒbƒVƒ…‚Ì‰Šúİ’è
+////////////
+//  é–¢æ•°  //
+////////////
+// ãƒŠã‚«ãƒ‡ã®ãƒãƒƒã‚·ãƒ¥ã®åˆæœŸè¨­å®š
 void InitializeNakadeHash( void );
 
-// ©ŒÈƒAƒ^ƒŠ‚ªƒiƒJƒf‚ÌŒ`‚É‚È‚Á‚Ä‚¢‚é‚©(ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“—p)
-bool IsNakadeSelfAtari( game_info_t *game, int pos, int color );
+// è‡ªå·±ã‚¢ã‚¿ãƒªãŒãƒŠã‚«ãƒ‡ã®å½¢ã«ãªã£ã¦ã„ã‚‹ã‹(ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ç”¨)
+bool IsNakadeSelfAtari( const game_info_t *game, const int pos, const int color );
 
-// ©ŒÈƒAƒ^ƒŠ‚ªƒiƒJƒf‚ÌŒ`‚É‚È‚Á‚Ä‚¢‚é‚©(UCT—p)
-bool IsUctNakadeSelfAtari( game_info_t *game, int pos, int color );
+// è‡ªå·±ã‚¢ã‚¿ãƒªãŒãƒŠã‚«ãƒ‡ã®å½¢ã«ãªã£ã¦ã„ã‚‹ã‹(UCTç”¨)
+bool IsUctNakadeSelfAtari( const game_info_t *game, const int pos, const int color );
 
-// ’¼‘O‚Ìè‚ÅˆÍ‚Á‚½ƒGƒŠƒA‚ÉƒiƒJƒf‚Ì‹}Š‚ª‚ ‚é‚©‚ğŠm”F
-// ƒiƒJƒf‚Ì‹}Š‚ª‚ ‚ê‚Î, ‚»‚ÌÀ•W‚ğ
-// ‚È‚¯‚ê‚Î, -1‚ğ•Ô‚·
-void SearchNakade( game_info_t *game, int *nakade_num, int *nakade_pos );
+// ç›´å‰ã®æ‰‹ã§å›²ã£ãŸã‚¨ãƒªã‚¢ã«ãƒŠã‚«ãƒ‡ã®æ€¥æ‰€ãŒã‚ã‚‹ã‹ã‚’ç¢ºèª
+// ãƒŠã‚«ãƒ‡ã®æ€¥æ‰€ãŒã‚ã‚Œã°, ãã®åº§æ¨™ã‚’
+// ãªã‘ã‚Œã°, -1ã‚’è¿”ã™
+void SearchNakade( const game_info_t *game, int *nakade_num, int *nakade_pos );
 
-// ’¼‘O‚Ìè‚Åæ‚ç‚ê‚½Î‚ªƒiƒJƒf‚ÌŒ`‚É‚È‚Á‚Ä‚¢‚é‚©‚ğŠm”F
-// ƒiƒJƒf‚Ì‹}Š‚ª‚ ‚ê‚Î, ‚»‚ÌÀ•W‚ğ•Ô‚·
-// ‚È‚¯‚ê‚Î, -1‚ğ•Ô‚·
-int CheckRemovedStoneNakade( game_info_t *game, int color );
-
-// ƒiƒJƒf‚É‚È‚Á‚Ä‚¢‚éÀ•W‚ğ•Ô‚·
-int FindNakadePos( game_info_t *game, int pos, int color );
-
-// ƒLƒ…[‚Ì‘€ì
-void InitializeNakadeQueue( nakade_queue_t *nq );
-void Enqueue( nakade_queue_t *nq, int pos );
-int Dequeue( nakade_queue_t *nq );
-bool IsQueueEmpty( nakade_queue_t *nq );
-
-// DEBUG—p
-void PrintNotNakadePat( void );
+// ç›´å‰ã®æ‰‹ã§å–ã‚‰ã‚ŒãŸçŸ³ãŒãƒŠã‚«ãƒ‡ã®å½¢ã«ãªã£ã¦ã„ã‚‹ã‹ã‚’ç¢ºèª
+// ãƒŠã‚«ãƒ‡ã®æ€¥æ‰€ãŒã‚ã‚Œã°, ãã®åº§æ¨™ã‚’è¿”ã™
+// ãªã‘ã‚Œã°, -1ã‚’è¿”ã™
+int CheckRemovedStoneNakade( const game_info_t *game, const int color );
 
 #endif

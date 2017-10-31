@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <cstdio>
 #include <iostream>
@@ -8,7 +8,7 @@
 using namespace std;
 
 ////////////
-//  •Ï”  //
+//  å¤‰æ•°  //
 ////////////
 
 // bit
@@ -75,140 +75,144 @@ const unsigned long long random_bitstrings[BIT_MAX][S_MAX] = {
   { 0xffb5a3079c5f3418LLU, 0x3373d7f543f1ab0dLLU, 0x8d84012afc9aa746LLU, 0xb287a6f25e5acdf8LLU },
 };
 
+////////////
+//  é–¢æ•°  //
+////////////
+//  ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒãƒƒã‚·ãƒ¥é–¢æ•°
+static unsigned long long MD2Hash( const unsigned int md2 );
+static unsigned long long MD3Hash( const unsigned int md3 );
+static unsigned long long MD4Hash( const unsigned int md4 );
+static unsigned long long MD5Hash( const unsigned long long int md5 );
+
 
 /////////////////////////////
-//  ƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…ŠÖ”  //
+//  ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒãƒƒã‚·ãƒ¥é–¢æ•°  //
 /////////////////////////////
 void
-PatternHash(struct pattern *pat, pattern_hash_t *hash_pat)
+PatternHash( const pattern_t *pat, pattern_hash_t *hash_pat )
 {
-	int i;
-	unsigned int md2_transp[16];
-	unsigned int md3_transp[16];
-	unsigned int md4_transp[16];
-	unsigned long long md5_transp[16];
-	unsigned int tmp2, min2;
-	unsigned int tmp3, min3;
-	unsigned long long tmp4, min4;
-	unsigned long long tmp5, min5;
-	int index2, index3, index4, index5;
+  unsigned int md2_transp[16], md3_transp[16], md4_transp[16];
+  unsigned long long md5_transp[16];
+  unsigned int tmp2, min2, tmp3, min3;
+  unsigned long long tmp4, min4, tmp5, min5;
+  int index2, index3, index4, index5;
 
-	MD2Transpose16(pat->list[MD_2], md2_transp);
-	MD3Transpose16(pat->list[MD_3], md3_transp);
-	MD4Transpose16(pat->list[MD_4], md4_transp);
-	MD5Transpose16(pat->large_list[MD_5], md5_transp);
+  MD2Transpose16(pat->list[MD_2], md2_transp);
+  MD3Transpose16(pat->list[MD_3], md3_transp);
+  MD4Transpose16(pat->list[MD_4], md4_transp);
+  MD5Transpose16(pat->large_list[MD_5], md5_transp);
 
-	index2 = index3 = index4 = index5 = 0;
+  index2 = index3 = index4 = index5 = 0;
 
-	min2 = md2_transp[0];
-	min3 = md3_transp[0] + md2_transp[0];
-	min4 = (unsigned long long)md4_transp[0] + md3_transp[0] + md2_transp[0];
-	min5 = md5_transp[0] + md4_transp[0] + md3_transp[0] + md2_transp[0];
+  min2 = md2_transp[0];
+  min3 = md3_transp[0] + md2_transp[0];
+  min4 = (unsigned long long)md4_transp[0] + md3_transp[0] + md2_transp[0];
+  min5 = md5_transp[0] + md4_transp[0] + md3_transp[0] + md2_transp[0];
 
-	for (i = 1; i < 16; i++) {
-		tmp2 = md2_transp[i];
-		if (min2 > tmp2) {
-			index2 = i;
-			min2 = tmp2;
-		}
-		tmp3 = md3_transp[i] + md2_transp[i];
-		if (min3 > tmp3) {
-			index3 = i;
-			min3 = tmp3;
-		}
-		tmp4 = (unsigned long long)md4_transp[i] + md3_transp[i] + md2_transp[i];
-		if (min4 > tmp4) {
-			index4 = i;
-			min4 = tmp4;
-		}
-		tmp5 = md5_transp[i] + md4_transp[i] + md3_transp[i] + md2_transp[i];
-		if (min5 > tmp5) {
-			index5 = i;
-			min5 = tmp5;
-		}
-	}
+  for (int i = 1; i < 16; i++) {
+    tmp2 = md2_transp[i];
+    if (min2 > tmp2){
+      index2 = i;
+      min2 = tmp2;
+    }
+    tmp3 = md3_transp[i] + md2_transp[i];
+    if (min3 > tmp3){
+      index3 = i;
+      min3 = tmp3;
+    }
+    tmp4 = (unsigned long long)md4_transp[i] + md3_transp[i] + md2_transp[i];
+    if (min4 > tmp4) {
+      index4 = i;
+      min4 = tmp4;
+    }
+    tmp5 = md5_transp[i] + md4_transp[i] + md3_transp[i] + md2_transp[i];
+    if (min5 > tmp5){
+      index5 = i;
+      min5 = tmp5;
+    }
+  }
 
-	hash_pat->list[MD_2] = MD2Hash(md2_transp[index2]);
-	hash_pat->list[MD_3] = MD3Hash(md3_transp[index3]) ^ MD2Hash(md2_transp[index3]);
-	hash_pat->list[MD_4] = MD4Hash(md4_transp[index4]) ^ MD3Hash(md3_transp[index4]) ^ MD2Hash(md2_transp[index4]);
-	hash_pat->list[MD_5 + MD_MAX] = MD5Hash(md5_transp[index5]) ^ MD4Hash(md4_transp[index5]) ^ MD3Hash(md3_transp[index5]) ^ MD2Hash(md2_transp[index5]);
+  hash_pat->list[MD_2] = MD2Hash(md2_transp[index2]);
+  hash_pat->list[MD_3] = MD3Hash(md3_transp[index3]) ^ MD2Hash(md2_transp[index3]);
+  hash_pat->list[MD_4] = MD4Hash(md4_transp[index4]) ^ MD3Hash(md3_transp[index4]) ^ MD2Hash(md2_transp[index4]);
+  hash_pat->list[MD_5 + MD_MAX] = MD5Hash(md5_transp[index5]) ^ MD4Hash(md4_transp[index5]) ^ MD3Hash(md3_transp[index5]) ^ MD2Hash(md2_transp[index5]);
 }
 
 
 /////////////////////////////
-//  ƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…ŠÖ”  //
+//  ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒãƒƒã‚·ãƒ¥é–¢æ•°  //
 /////////////////////////////
-unsigned long long
-MD2Hash(unsigned int md2)
+static unsigned long long
+MD2Hash( const unsigned int md2 )
 {
-	unsigned long long hash = 0;
+  unsigned long long hash = 0;
 
-	for (int i = 0; i < 12; i++) {
-		hash ^= random_bitstrings[i][(md2 >> (i * 2)) & 0x3];
-	}
+  for (int i = 0; i < 12; i++) {
+    hash ^= random_bitstrings[i][(md2 >> (i * 2)) & 0x3];
+  }
 
-	return hash;
+  return hash;
+}
+
+static unsigned long long
+MD3Hash( const unsigned int md3 )
+{
+  unsigned long long hash = 0;
+
+  for (int i = 0; i < 12; i++) {
+    hash ^= random_bitstrings[i + 12][(md3 >> (i * 2)) & 0x3];
+  }
+
+  return hash;
 }
 
 
-unsigned long long
-MD3Hash(unsigned int md3)
+static unsigned long long
+MD4Hash( const unsigned int md4 )
 {
-	unsigned long long hash = 0;
+  unsigned long long hash = 0;
 
-	for (int i = 0; i < 12; i++) {
-		hash ^= random_bitstrings[i + 12][(md3 >> (i * 2)) & 0x3];
-	}
-
-	return hash;
+  for (int i = 0; i < 16; i++) {
+    hash ^= random_bitstrings[i + 24][(md4 >> (i * 2)) & 0x3];
+  }
+  
+  return hash;
 }
 
-
-unsigned long long
-MD4Hash(unsigned int md4)
+static unsigned long long
+MD5Hash( const unsigned long long md5 )
 {
-	unsigned long long hash = 0;
+  unsigned long long hash = 0;
 
-	for (int i = 0; i < 16; i++) {
-		hash ^= random_bitstrings[i + 24][(md4 >> (i * 2)) & 0x3];
-	}
+  for (int i = 0; i < 20; i++) {
+    hash ^= random_bitstrings[i + 40][(md5 >> (i * 2)) & 0x3];
+  }
 
-	return hash;
-}
-
-unsigned long long
-MD5Hash(unsigned long long md5)
-{
-	unsigned long long hash = 0;
-
-	for (int i = 0; i < 20; i++) {
-		hash ^= random_bitstrings[i + 40][(md5 >> (i * 2)) & 0x3];
-	}
-
-	return hash;
+  return hash;
 }
 
 
 ////////////////////
-//  ƒf[ƒ^‚ğ’Tõ  //
+//  ãƒ‡ãƒ¼ã‚¿ã‚’æ¢ç´¢  //
 ////////////////////
-int SearchIndex(index_hash_t *index, unsigned long long hash) {
-	auto key = TRANS20(hash);
+int
+SearchIndex( const index_hash_t *index, const unsigned long long hash )
+{
+  const int key = TRANS20(hash);
+  int i;
 
+  if (key >= HASH_MAX) cerr << "Over Run" << endl;
 
-	if (key >= HASH_MAX) cerr << "Over Run" << endl;
+  i = key;
+  do{
+    if (index[i].hash == 0){
+      return index[i].index;
+    } else if (index[i].hash == hash) {
+      return index[i].index;
+    }
+    i++;
+    if (i >= HASH_MAX) i = 0;
+  } while (i != key);
 
-	auto i = key;
-	do {
-		if (index[i].hash == 0) {
-			return index[i].index;
-		}
-		else if (index[i].hash == hash) {
-			return index[i].index;
-		}
-		i++;
-		if (i >= HASH_MAX) i = 0;
-	} while (i != key);
-
-	return -1;
+  return -1;
 }

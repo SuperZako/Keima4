@@ -1,203 +1,261 @@
-#include "pch.h"
+﻿#include "pch.h"
 
 #include <cstdlib>
-#include <cmath>
-#include <ctime>
 #include <iostream>
+#include <iterator>
 #include <random>
+#include <vector>
 
 #include "Nakade.h"
 #include "ZobristHash.h"
 
 using namespace std;
 
-// bit��
-unsigned long long hash_bit[BOARD_MAX][HASH_KO + 1];  
 
-unsigned long long shape_bit[BOARD_MAX];  
+////////////
+//  変数  //
+////////////
 
+//  UCTのノード用のビット列 (局面の合流なし)
+unsigned long long move_bit[MAX_RECORDS][BOARD_MAX][HASH_KO + 1];
 
+// 局面を表すためのビット列
+unsigned long long hash_bit[BOARD_MAX][HASH_KO + 1];
+
+// ナカデの形を判断するためのビット列
+unsigned long long shape_bit[BOARD_MAX];
+
+// ハッシュ表
 node_hash_t *node_hash;
+
+// ハッシュのエントリ数
 static unsigned int used;
+
+// ハッシュ表にある最も古いデータが持つ手数
 static int oldest_move;
 
+// ハッシュ表のサイズ
 unsigned int uct_hash_size = UCT_HASH_SIZE;
+
+// 探索停止するハッシュ表のエントリ数
 unsigned int uct_hash_limit = UCT_HASH_SIZE * 9 / 10;
 
+// ハッシュ表に余裕があるかどうかを表すフラグ
 bool enough_size;
 
+
+////////////////////////////////////
+//  ハッシュテーブルのサイズの設定  //
+////////////////////////////////////
 void
-SetHashSize(unsigned int new_size)
+SetHashSize(const unsigned int new_size)
 {
-  if (!(new_size & (new_size - 1))) {
-    uct_hash_size = new_size;
-    uct_hash_limit = new_size * 9 / 10;
-  } else {
-    int i;
-    cerr << "Hash size must be 2 ^ n" << endl;
-    for (i = 1; i <= 20; i++) {
-      cerr << "2^" << i << ":" << (1 << i) << endl;
-    }
-    exit(1);
-  }
+	if (!(new_size & (new_size - 1))) {
+		uct_hash_size = new_size;
+		uct_hash_limit = new_size * 9 / 10;
+	}
+	else {
+		cerr << "Hash size must be 2 ^ n" << endl;
+		for (int i = 1; i <= 20; i++) {
+			cerr << "2^" << i << ":" << (1 << i) << endl;
+		}
+		exit(1);
+	}
 
 }
 
+
+/////////////////////////
+//  インデックスの取得  //
+/////////////////////////
 unsigned int
-TransHash(unsigned long long hash)
+TransHash(const unsigned long long hash)
 {
-  return ((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (uct_hash_size - 1);
+	return ((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (uct_hash_size - 1);
 }
 
 
 /////////////////////
-//  bit��̏�����  //
+//  bit列の初期化  //
 /////////////////////
 void
 InitializeHash(void)
 {
-  std::random_device rnd;
-  std::mt19937_64 mt(rnd());
-  int i;
+	std::random_device rnd;
+	std::mt19937_64 mt(rnd());
 
-  for (i = 0; i < BOARD_MAX; i++) {  
-    hash_bit[i][HASH_PASS]  = mt();
-    hash_bit[i][HASH_BLACK] = mt();
-    hash_bit[i][HASH_WHITE] = mt();
-    hash_bit[i][HASH_KO]    = mt();
-    shape_bit[i] = mt();
-  }
+	for (int i = 0; i < MAX_RECORDS; i++) {
+		for (int j = 0; j < BOARD_MAX; j++) {
+			move_bit[i][j][HASH_PASS] = mt();
+			move_bit[i][j][HASH_BLACK] = mt();
+			move_bit[i][j][HASH_WHITE] = mt();
+			move_bit[i][j][HASH_KO] = mt();
+		}
+	}
 
-  node_hash = (node_hash_t *)malloc(sizeof(node_hash_t) * uct_hash_size);
+	for (int i = 0; i < BOARD_MAX; i++) {
+		hash_bit[i][HASH_PASS] = mt();
+		hash_bit[i][HASH_BLACK] = mt();
+		hash_bit[i][HASH_WHITE] = mt();
+		hash_bit[i][HASH_KO] = mt();
+		shape_bit[i] = mt();
+	}
 
-  if (node_hash == NULL) {
-    cerr << "Cannot allocate memory" << endl;
-    exit(1);
-  }
+	node_hash = new node_hash_t[uct_hash_size];
 
-  enough_size = true;
+	if (node_hash == NULL) {
+		cerr << "Cannot allocate memory" << endl;
+		exit(1);
+	}
 
-  InitializeNakadeHash();
+	enough_size = true;
+
+	InitializeNakadeHash();
 }
 
 
 //////////////////////////////////
-//  UCT�m�[�h�̃n�b�V���̏�����  //
+//  UCTノードのハッシュの初期化  //
 //////////////////////////////////
 void
 InitializeUctHash(void)
 {
-  unsigned int i;
+	oldest_move = 1;
+	used = 0;
 
-  oldest_move = 1;
-  used = 0;
-
-  for (i = 0; i < uct_hash_size; i++) {
-    node_hash[i].flag = false;
-    node_hash[i].hash = 0;
-    node_hash[i].color = 0;
-  }
+	for (unsigned int i = 0; i < uct_hash_size; i++) {
+		node_hash[i].flag = false;
+		node_hash[i].hash = 0;
+		node_hash[i].color = 0;
+	}
 }
 
 
-//////////////////////////////////////
-//  UCT�m�[�h�̃n�b�V�����̃N���A  //
+/////////////////////////////////////
+//  UCTノードのハッシュ情報のクリア  //
 /////////////////////////////////////
 void
 ClearUctHash(void)
 {
-  unsigned int i;
+	used = 0;
+	enough_size = true;
 
-  used = 0;
-  enough_size = true;
+	for (unsigned int i = 0; i < uct_hash_size; i++) {
+		node_hash[i].flag = false;
+		node_hash[i].hash = 0;
+		node_hash[i].color = 0;
+		node_hash[i].moves = 0;
+	}
+}
 
-  for (i = 0; i < uct_hash_size; i++) {
-    node_hash[i].flag = false;
-    node_hash[i].hash = 0;
-    node_hash[i].color = 0;
-    node_hash[i].moves = 0;
-  }
+
+////////////////////////////////////////
+//  現局面から到達し得ないノードの削除  //
+////////////////////////////////////////
+void
+ClearNotDescendentNodes(vector<int> &indexes)
+{
+	auto iter = indexes.begin();
+
+	for (int i = 0; i < (int)uct_hash_size; i++) {
+		if (*iter == i) {
+			iter++;
+		}
+		else if (node_hash[i].flag) {
+			node_hash[i].flag = false;
+			node_hash[i].hash = 0;
+			node_hash[i].color = 0;
+			node_hash[i].moves = 0;
+			used--;
+		}
+	}
+
+	enough_size = true;
 }
 
 
 ///////////////////////
-//  �Â��f�[�^�̍폜  //
+//  古いデータの削除  //
 ///////////////////////
 void
-DeleteOldHash(game_info_t *game)
+DeleteOldHash(const game_info_t *game)
 {
-  unsigned int i;
+	while (oldest_move < game->moves) {
+		for (unsigned int i = 0; i < uct_hash_size; i++) {
+			if (node_hash[i].flag && node_hash[i].moves == oldest_move) {
+				node_hash[i].flag = false;
+				node_hash[i].hash = 0;
+				node_hash[i].color = 0;
+				node_hash[i].moves = 0;
+				used--;
+			}
+		}
+		oldest_move++;
+	}
 
-  while (oldest_move < game->moves) {
-    for (i = 0; i < uct_hash_size; i++) {
-      if (node_hash[i].flag && node_hash[i].moves == oldest_move) {
-	node_hash[i].flag = false;
-	node_hash[i].hash = 0;
-	node_hash[i].color = 0;
-	node_hash[i].moves = 0;
-	used--;
-      }
-    }
-    oldest_move++;
-  }
-
-  enough_size = true;
+	enough_size = true;
 }
+
 
 //////////////////////////////////////
-//  ���g�p�̃C���f�b�N�X��T���ĕԂ�  //
+//  未使用のインデックスを探して返す  //
 //////////////////////////////////////
 unsigned int
-SearchEmptyIndex(unsigned long long hash, int color, int moves)
+SearchEmptyIndex(const unsigned long long hash, const int color, const int moves)
 {
-  unsigned int key = TransHash(hash);
-  unsigned int i = key;
+	const unsigned int key = TransHash(hash);
+	unsigned int i = key;
 
-  do {
-    if (!node_hash[i].flag) {
-      node_hash[i].flag = true;
-      node_hash[i].hash = hash;
-      node_hash[i].moves = moves;
-      node_hash[i].color = color;
-      used++;
-      if (used > uct_hash_limit) enough_size = false;
-      return i;
-    }
-    i++;
-    if (i >= uct_hash_size) i = 0;
-  } while (i != key);
+	do {
+		if (!node_hash[i].flag) {
+			node_hash[i].flag = true;
+			node_hash[i].hash = hash;
+			node_hash[i].moves = moves;
+			node_hash[i].color = color;
+			used++;
+			if (used > uct_hash_limit) enough_size = false;
+			return i;
+		}
+		i++;
+		if (i >= uct_hash_size) i = 0;
+	} while (i != key);
 
-  return uct_hash_size;
+	return uct_hash_size;
 }
 
+
 ////////////////////////////////////////////
-//  �n�b�V���l�ɑΉ�����C���f�b�N�X��Ԃ�  //
+//  ハッシュ値に対応するインデックスを返す  //
 ////////////////////////////////////////////
 unsigned int
-FindSameHashIndex(unsigned long long hash, int color, int moves)
+FindSameHashIndex(const unsigned long long hash, const int color, const int moves)
 {
-  unsigned int key = TransHash(hash);
-  unsigned int i = key;
+	const unsigned int key = TransHash(hash);
+	unsigned int i = key;
 
-  do {
-    if (!node_hash[i].flag) {
-      return uct_hash_size;
-    } else if (node_hash[i].hash == hash &&
-	       node_hash[i].color == color &&
-	       node_hash[i].moves == moves) {
-      return i;
-    }
-    i++;
-    if (i >= uct_hash_size) i = 0;
-  } while (i != key);
+	do {
+		if (!node_hash[i].flag) {
+			return uct_hash_size;
+		}
+		else if (node_hash[i].hash == hash &&
+			node_hash[i].color == color &&
+			node_hash[i].moves == moves) {
+			return i;
+		}
+		i++;
+		if (i >= uct_hash_size) i = 0;
+	} while (i != key);
 
-  return uct_hash_size;
+	return uct_hash_size;
 }
 
 
+////////////////////////////////////////////////
+//  ハッシュテーブルに余裕があるかどうかの判定  //
+////////////////////////////////////////////////
 bool
 CheckRemainingHashSize(void)
 {
-  return enough_size;
+	return enough_size;
 }
 

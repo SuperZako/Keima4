@@ -1,6 +1,5 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
-#include "../Main.h"
 #include <cstdio>
 #include <cstring>
 #include <cmath>
@@ -19,90 +18,67 @@ bool debug_message = true;
 
 
 ////////////////////////////////////
-//  ƒGƒ‰[ƒƒbƒZ[ƒW‚Ìo—Í‚Ìİ’è  //
+//  ã‚¨ãƒ©ãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®å‡ºåŠ›ã®è¨­å®š  //
 ////////////////////////////////////
 void
-SetDebugMessageMode(bool flag)
+SetDebugMessageMode(const bool flag)
 {
 	debug_message = flag;
 }
 
 //////////////////
-//  ”Õ–Ê‚Ì•\¦  //
+//  ç›¤é¢ã®è¡¨ç¤º  //
 //////////////////
-void PrintBoard(game_info_t *game) {
-	auto response = ref new Platform::String(L"");
-	const wchar_t stone[S_MAX] = { '+', 'B', 'W', '#' };
+void
+PrintBoard(const game_info_t *game)
+{
+	const char stone[S_MAX] = { '+', 'B', 'W', '#' };
 	int i, x, y, pos;
 
 	if (!debug_message) return;
 
 	cerr << "Prisoner(Black) : " << game->prisoner[S_BLACK] << endl;
-	response += "Prisoner(Black) : " + game->prisoner[S_BLACK] + "\n";
-
 	cerr << "Prisoner(White) : " << game->prisoner[S_WHITE] << endl;
-	response += "Prisoner(White) : " + game->prisoner[S_WHITE] + "\n";
-
-
-
-
 	cerr << "Move : " << game->moves << endl;
-	response += "Move : " + game->moves + "\n";
 
 	cerr << "    ";
-	response += "    ";
 	for (i = 1, y = board_start; y <= board_end; y++, i++) {
 		cerr << " " << gogui_x[i];
-
-		response += " " + gogui_x[i];
 	}
 	cerr << endl;
-	response += "\n";
-	cerr << "   +";
-	response += "   +";
 
+	cerr << "   +";
 	for (i = 0; i < pure_board_size * 2 + 1; i++) {
 		cerr << "-";
-		response += "-";
 	}
 	cerr << "+" << endl;
-	response += "+" + "\n";
 
 	for (i = 1, y = board_start; y <= board_end; y++, i++) {
 		cerr << setw(2) << (pure_board_size + 1 - i) << ":|";
-		response += (pure_board_size + 1 - i) + ":|";
 		for (x = board_start; x <= board_end; x++) {
 			pos = POS(x, y);
 			cerr << " " << stone[(int)game->board[pos]];
-			response += " " + stone[(int)game->board[pos]];
 		}
 		cerr << " |" << endl;
-		response += " |" + "\n";
 	}
 
 	cerr << "   +";
-	response += "   +";
 	for (i = 1; i <= pure_board_size * 2 + 1; i++) {
 		cerr << "-";
-		response += "-";
 	}
 	cerr << "+" << endl;
-	response += "+" + "\n";
-
-	Keima::Main::setResponse(response);
-
 }
 
 
 /////////////////////////////////
-//  ˜A‚Ìî•ñ‚Ì•\¦              //
-//    ŒÄ‹z“_‚Ì”, À•W          //
-//    ˜A‚ğ\¬‚·‚éÎ‚Ì”, À•W  //
+//  é€£ã®æƒ…å ±ã®è¡¨ç¤º              //
+//    å‘¼å¸ç‚¹ã®æ•°, åº§æ¨™          //
+//    é€£ã‚’æ§‹æˆã™ã‚‹çŸ³ã®æ•°, åº§æ¨™  //
 /////////////////////////////////
 void
-PrintString(game_info_t *game)
+PrintString(const game_info_t *game)
 {
-	string_t *string = game->string;
+	const string_t *string = game->string;
 	int i, pos, neighbor;
 
 	if (!debug_message) return;
@@ -155,10 +131,10 @@ PrintString(game_info_t *game)
 
 
 //////////////////////////
-//  ŠeÀ•W‚Ì˜AID‚Ì•\¦  //
+//  å„åº§æ¨™ã®é€£IDã®è¡¨ç¤º  //
 //////////////////////////
 void
-PrintStringID(game_info_t *game)
+PrintStringID(const game_info_t *game)
 {
 	int i, x, y, pos;
 
@@ -188,10 +164,10 @@ PrintStringID(game_info_t *game)
 
 
 ///////////////////////////////////////
-//  ˜AƒŠƒXƒg‚ÌŒq‚ª‚è‚ğ•\¦(Debug—p)  //
+//  é€£ãƒªã‚¹ãƒˆã®ç¹‹ãŒã‚Šã‚’è¡¨ç¤º(Debugç”¨)  //
 ///////////////////////////////////////
 void
-PrintStringNext(game_info_t *game)
+PrintStringNext(const game_info_t *game)
 {
 	int i, x, y, pos;
 
@@ -227,16 +203,16 @@ PrintStringNext(game_info_t *game)
 
 
 ///////////////////
-//  Owner‚Ì•\¦  //
+//  Ownerã®è¡¨ç¤º  //
 ///////////////////
 void
-PrintOwner(uct_node_t *root, int color, double *own)
+PrintOwner(const uct_node_t *root, const int color, double *own)
 {
 	int i, pos, x, y;
 	double owner;
 	int player = 0, opponent = 0;
 	double score;
-	statistic_t *statistic = root->statistic;
+	const statistic_t *statistic = root->statistic;
 
 	if (!debug_message) return;
 
@@ -298,10 +274,10 @@ PrintOwner(uct_node_t *root, int color, double *own)
 
 
 ///////////////////////
-//  Å‘P‰è—ñ‚Ìo—Í  //
+//  æœ€å–„å¿œæ‰‹åˆ—ã®å‡ºåŠ›  //
 ///////////////////////
 void
-PrintBestSequence(game_info_t *game, uct_node_t *uct_node, int root, int start_color)
+PrintBestSequence(const game_info_t *game, const uct_node_t *uct_node, const int root, const int start_color)
 {
 	game_info_t *search_result;
 	int current = root;
@@ -310,7 +286,7 @@ PrintBestSequence(game_info_t *game, uct_node_t *uct_node, int root, int start_c
 	int color = start_color;
 	int i;
 	int child_num;
-	child_node_t *uct_child;
+	const child_node_t *uct_child;
 
 	if (!debug_message) return;
 
@@ -384,10 +360,10 @@ PrintBestSequence(game_info_t *game, uct_node_t *uct_node, int root, int start_c
 
 
 ///////////////////////
-//  ’Tõ‚Ìî•ñ‚Ì•\¦  //
+//  æ¢ç´¢ã®æƒ…å ±ã®è¡¨ç¤º  //
 ///////////////////////
 void
-PrintPlayoutInformation(uct_node_t *root, po_info_t *po_info, double finish_time, int pre_simulated)
+PrintPlayoutInformation(const uct_node_t *root, const po_info_t *po_info, const double finish_time, const int pre_simulated)
 {
 	double winning_percentage = (double)root->win / root->move_count;
 
@@ -405,10 +381,10 @@ PrintPlayoutInformation(uct_node_t *root, po_info_t *po_info, double finish_time
 
 
 //////////////////
-//  À•W‚Ìo—Í  //
+//  åº§æ¨™ã®å‡ºåŠ›  //
 //////////////////
 void
-PrintPoint(int pos)
+PrintPoint(const int pos)
 {
 	if (!debug_message) return;
 
@@ -425,7 +401,7 @@ PrintPoint(int pos)
 
 
 /////////////////////
-//  ƒRƒ~‚Ì’l‚Ìo—Í  //
+//  ã‚³ãƒŸã®å€¤ã®å‡ºåŠ›  //
 /////////////////////
 void
 PrintKomiValue(void)
@@ -437,35 +413,36 @@ PrintKomiValue(void)
 
 
 ////////////////////////////////////////
-//  Pondering‚ÌƒvƒŒƒCƒAƒEƒg‰ñ”‚Ìo—Í  //
+//  Ponderingã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®å‡ºåŠ›  //
 ////////////////////////////////////////
-void PrintPonderingCount(int count) {
-	if (!debug_message) {
-		return;
-	}
+void
+PrintPonderingCount(const int count)
+{
+	if (!debug_message) return;
 
 	cerr << "Ponder : " << count << " Playouts" << endl;
 }
 
 
 //////////////////////
-//  ’TõŠÔ‚Ìo—Í  //
+//  æ¢ç´¢æ™‚é–“ã®å‡ºåŠ›  //
 /////////////////////
-void PrintPlayoutLimits(double time_limit, int playout_limit) {
-	if (!debug_message) {
-		return;
-	}
+void
+PrintPlayoutLimits(const double time_limit, const int playout_limit)
+{
+	if (!debug_message) return;
 
 	cerr << "Time Limit    : " << time_limit << " Sec" << endl;
 	cerr << "Playout Limit : " << playout_limit << " PO" << endl;
 }
 
 ////////////////////////////////////////
-//  Pondering‚ÌƒvƒŒƒCƒAƒEƒg‰ñ”‚Ìo—Í  //
+//  Ponderingã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®å‡ºåŠ›  //
 ////////////////////////////////////////
-void PrintReuseCount(int count) {
-	if (!debug_message) {
-		return;
-	}
+void
+PrintReuseCount(const int count)
+{
+	if (!debug_message) return;
+
 	cerr << "Reuse : " << count << " Playouts" << endl;
 }

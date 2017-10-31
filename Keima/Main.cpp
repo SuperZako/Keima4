@@ -9,7 +9,7 @@ Platform::String^ Keima::Main::response = ref new Platform::String();
 extern void KEIMA_Initialize();
 extern int main(int argc, char **argv);
 extern void KEIMA_loop(Platform::String^ inputString);
-extern bool IsLegal(game_info_t *game, int pos, int color);
+extern bool IsLegal(const game_info_t *game, const int pos, const int color);
 extern game_info_t *game;
 
 using namespace Keima;

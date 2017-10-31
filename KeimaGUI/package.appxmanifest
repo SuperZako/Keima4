@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
-  <Identity Name="95083D6DBAB5.Keima" Version="1.1.15.0" Publisher="CN=6669084B-6C99-4992-B86E-E6BDB52DD1A2" />
+  <Identity Name="95083D6DBAB5.Keima" Version="1.1.22.0" Publisher="CN=6669084B-6C99-4992-B86E-E6BDB52DD1A2" />
   <mp:PhoneIdentity PhoneProductId="ddf827b2-d3a6-4010-82db-956c2b6c51f1" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>Keima</DisplayName>

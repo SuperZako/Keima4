@@ -1,4 +1,4 @@
-#ifndef _RATING_H_
+ï»¿#ifndef _RATING_H_
 #define _RATING_H_
 
 #include <string>
@@ -8,53 +8,53 @@
 #include "UctRating.h"
 
 
-enum FEATURE1 {
-	F_SAVE_CAPTURE1_1,
-	F_SAVE_CAPTURE1_2,
-	F_SAVE_CAPTURE1_3,
-	F_SAVE_CAPTURE2_1,
-	F_SAVE_CAPTURE2_2,
-	F_SAVE_CAPTURE2_3,
-	F_SAVE_CAPTURE3_1,
-	F_SAVE_CAPTURE3_2,
-	F_SAVE_CAPTURE3_3,
-	F_SAVE_CAPTURE_SELF_ATARI,
-	F_2POINT_CAPTURE_SMALL,
-	F_2POINT_CAPTURE_LARGE,
-	F_3POINT_CAPTURE_SMALL,
-	F_3POINT_CAPTURE_LARGE,
-	F_CAPTURE,
-	F_CAPTURE_AFTER_KO,
-	F_SAVE_EXTENSION_SAFELY1,
-	F_SAVE_EXTENSION_SAFELY2,
-	F_SAVE_EXTENSION_SAFELY3,
-	F_SAVE_EXTENSION1,
-	F_SAVE_EXTENSION2,
-	F_SAVE_EXTENSION3,
-	F_MAX1,
+enum FEATURE1{
+  F_SAVE_CAPTURE1_1,
+  F_SAVE_CAPTURE1_2,
+  F_SAVE_CAPTURE1_3,
+  F_SAVE_CAPTURE2_1,
+  F_SAVE_CAPTURE2_2,
+  F_SAVE_CAPTURE2_3,
+  F_SAVE_CAPTURE3_1,
+  F_SAVE_CAPTURE3_2,
+  F_SAVE_CAPTURE3_3,
+  F_SAVE_CAPTURE_SELF_ATARI,
+  F_2POINT_CAPTURE_SMALL,
+  F_2POINT_CAPTURE_LARGE,
+  F_3POINT_CAPTURE_SMALL,
+  F_3POINT_CAPTURE_LARGE,
+  F_CAPTURE,
+  F_CAPTURE_AFTER_KO,
+  F_SAVE_EXTENSION_SAFELY1,
+  F_SAVE_EXTENSION_SAFELY2,
+  F_SAVE_EXTENSION_SAFELY3,
+  F_SAVE_EXTENSION1,
+  F_SAVE_EXTENSION2,
+  F_SAVE_EXTENSION3,
+  F_MAX1,
 };
 
 enum FEATURE2 {
-	F_SELF_ATARI_SMALL,
-	F_SELF_ATARI_NAKADE,
-	F_SELF_ATARI_LARGE,
-	F_ATARI,
-	F_2POINT_ATARI_SMALL,
-	F_2POINT_ATARI_LARGE,
-	F_2POINT_C_ATARI_SMALL,
-	F_2POINT_C_ATARI_LARGE,
-	F_3POINT_ATARI_SMALL,
-	F_3POINT_ATARI_LARGE,
-	F_3POINT_C_ATARI_SMALL,
-	F_3POINT_C_ATARI_LARGE,
-	F_3POINT_DAME_SMALL,
-	F_3POINT_DAME_LARGE,
-	F_2POINT_EXTENSION_SAFELY,
-	F_2POINT_EXTENSION,
-	F_3POINT_EXTENSION_SAFELY,
-	F_3POINT_EXTENSION,
-	F_THROW_IN_2,
-	F_MAX2,
+  F_SELF_ATARI_SMALL,
+  F_SELF_ATARI_NAKADE,
+  F_SELF_ATARI_LARGE,
+  F_ATARI,
+  F_2POINT_ATARI_SMALL,
+  F_2POINT_ATARI_LARGE,
+  F_2POINT_C_ATARI_SMALL,
+  F_2POINT_C_ATARI_LARGE,
+  F_3POINT_ATARI_SMALL,
+  F_3POINT_ATARI_LARGE,
+  F_3POINT_C_ATARI_SMALL,
+  F_3POINT_C_ATARI_LARGE,
+  F_3POINT_DAME_SMALL,
+  F_3POINT_DAME_LARGE,
+  F_2POINT_EXTENSION_SAFELY,
+  F_2POINT_EXTENSION,
+  F_3POINT_EXTENSION_SAFELY,
+  F_3POINT_EXTENSION,
+  F_THROW_IN_2,
+  F_MAX2,
 };
 
 const std::string po_features_name[F_MAX1 + F_MAX2] = {
@@ -107,7 +107,7 @@ const int PREVIOUS_DISTANCE_MAX = 3;
 const int PO_TACTICALS_MAX1 = (1 << F_MAX1);
 const int PO_TACTICALS_MAX2 = (1 << F_MAX2);
 
-// MD2ƒpƒ^[ƒ“‚É“ü‚éŽè‚Ì”
+// MD2ãƒ‘ã‚¿ãƒ¼ãƒ³ã«å…¥ã‚‹æ‰‹ã®æ•°
 const int UPDATE_NUM = 13;
 
 const int F_MASK_MAX = 30;
@@ -118,7 +118,7 @@ const double JUMP_BIAS = 4.63207;
 const double PO_BIAS = 1.66542;
 
 ////////////
-//  •Ï”  //
+//  å¤‰æ•°  //
 ////////////
 
 extern float po_tactical_features[TACTICAL_FEATURE_MAX];
@@ -131,56 +131,32 @@ extern float po_tactical_set2[PO_TACTICALS_MAX2];
 
 extern char po_params_path[1024];
 
-// ƒrƒbƒgƒ}ƒXƒN
+// ãƒ“ãƒƒãƒˆãƒžã‚¹ã‚¯
 extern unsigned int tactical_features_mask[F_MASK_MAX];
 
 ////////////
-//  ŠÖ”  //
+//  é–¢æ•°  //
 ////////////
 
-//  MD2‚ÉŽû‚Ü‚éÀ•W‚ÌŒvŽZ
-void SetNeighbor(void);
+//  MD2ã«åŽã¾ã‚‹åº§æ¨™ã®è¨ˆç®—
+void SetNeighbor( void );
 
-//  ‰Šú‰»
-void InitializeRating(void);
+//  åˆæœŸåŒ–
+void InitializeRating( void );
 
-//  íp“I“Á’¥‚Ì‰Šú‰»
-void InitializePoTacticalFeaturesSet(void);
+//  æˆ¦è¡“çš„ç‰¹å¾´ã®åˆæœŸåŒ–
+void InitializePoTacticalFeaturesSet( void );
 
-//  ’…Žè(Elo Rating)
-int RatingMove(game_info_t *game, int color, std::mt19937_64 *mt);
+//  ç€æ‰‹(Elo Rating)
+int RatingMove( game_info_t *game, int color, std::mt19937_64 *mt );
 
-//  ƒŒ[ƒeƒBƒ“ƒO 
-void Rating(game_info_t *game, int color, long long *sum_rate, long long *sum_rate_row, long long *rate);
+//  ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚° 
+void Rating( game_info_t *game, int color, long long *sum_rate, long long *sum_rate_row, long long *rate );
 
-//  ƒŒ[ƒeƒBƒ“ƒO 
-void PartialRating(game_info_t *game, int color, long long *sum_rate, long long *sum_rate_row, long long *rate);
+//  ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚° 
+void PartialRating( game_info_t *game, int color, long long *sum_rate, long long *sum_rate_row, long long *rate );
 
-//  ŒÄ‹z“_‚ª1‚Â‚Ì˜A‚É‘Î‚·‚é“Á’¥‚Ì”»’è  
-void PoCheckFeaturesLib1(game_info_t *game, int color, int *update, int *update_num, int pos);
-
-//  ŒÄ‹z“_‚ª2‚Â‚Ì˜A‚É‘Î‚·‚é“Á’¥‚Ì”»’è  
-void PoCheckFeaturesLib2(game_info_t *game, int color, int *update, int *update_num, int pos);
-
-//  ŒÄ‹z“_‚ª3‚Â‚Ì˜A‚É‘Î‚·‚é“Á’¥‚Ì”»’è  
-void PoCheckFeaturesLib3(game_info_t *game, int color, int *update, int *update_num, int pos);
-
-//  “Á’¥‚Ì”»’è
-void PoCheckFeatures(game_info_t *game, int color, int *update, int *update_num);
-
-//  …‚ð‰ðÁ‚·‚éƒgƒŠ‚Ì”»’è
-void PoCheckCaptureAfterKo(game_info_t *game, int color, int *update, int *update_num);
-
-//  Ž©ŒÈƒAƒ^ƒŠ‚Ì”»’è
-bool PoCheckSelfAtari(game_info_t *game, int color, int pos);
-
-//  ƒgƒŠ‚ÆƒAƒ^ƒŠ‚Ì”»’è
-void PoCheckCaptureAndAtari(game_info_t *game, int color, int pos);
-
-//  2–Ú‚Ì”²‚«Œã‚É‘Î‚·‚éƒzƒEƒŠƒRƒ~   
-void PoCheckRemove2Stones(game_info_t *game, int color, int *update, int *update_num);
-
-//  Œ»‹Ç–Ê‚Ì•]‰¿’l
-void AnalyzePoRating(game_info_t *game, int color, double rate[]);
+//  ç¾å±€é¢ã®è©•ä¾¡å€¤
+void AnalyzePoRating( game_info_t *game, int color, double rate[] );
 
 #endif

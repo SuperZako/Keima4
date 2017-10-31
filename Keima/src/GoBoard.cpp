@@ -1,1613 +1,1774 @@
-#include <pch.h>
+ï»¿#include "pch.h"
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <iostream>
 
 #include "GoBoard.h"
+#include "Semeai.h"
 #include "UctRating.h"
 #include "ZobristHash.h"
 
 using namespace std;
 
-
 /////////////////////
-//     ‘åˆæ•Ï”    //
+//     å¤§åŸŸå¤‰æ•°    //
 /////////////////////
 
-int pure_board_max = PURE_BOARD_MAX;    // ”Õ‚Ì‚Ì‘å‚«‚³    
-int pure_board_size = PURE_BOARD_SIZE;  // ”Õ‚Ì•Ó‚Ì‘å‚«‚³  
-int board_max = BOARD_MAX;              // ”ÕŠO‚ğŠÜ‚Ş”Õ‚Ì‘å‚«‚³  
-int board_size = BOARD_SIZE;            // ”ÕŠO‚ğŠÜ‚Ş”Õ‚Ì•Ó‚Ì‘å‚«‚³ 
+int pure_board_max = PURE_BOARD_MAX;    // ç›¤ã®ã®å¤§ãã•    
+int pure_board_size = PURE_BOARD_SIZE;  // ç›¤ã®è¾ºã®å¤§ãã•  
+int board_max = BOARD_MAX;              // ç›¤å¤–ã‚’å«ã‚€ç›¤ã®å¤§ãã•  
+int board_size = BOARD_SIZE;            // ç›¤å¤–ã‚’å«ã‚€ç›¤ã®è¾ºã®å¤§ãã• 
 
-int board_start = BOARD_START;  // ”Õ‚Ì¶(ã)’[
-int board_end = BOARD_END;      //  ”Õ‚Ì‰E(‰º)’[
+int board_start = BOARD_START;  // ç›¤ã®å·¦(ä¸Š)ç«¯
+int board_end = BOARD_END;      //  ç›¤ã®å³(ä¸‹)ç«¯
 
-double komi[S_WHITE + 1];          // ƒRƒ~‚Ì’l
-double dynamic_komi[S_WHITE + 1];  // ƒ_ƒCƒiƒ~ƒbƒNƒRƒ~‚Ì’l
-double default_komi = KOMI;        // ƒfƒtƒHƒ‹ƒg‚ÌƒRƒ~‚Ì’l
+int first_move_candidates;  // åˆæ‰‹ã®å€™è£œæ‰‹ã®å€‹æ•°
 
-int board_pos_id[BOARD_MAX];  // ”Õã‚ÌˆÊ’u‚Ì¯•Ê”Ô† 
+double komi[S_WHITE + 1];          // ã‚³ãƒŸã®å€¤
+double dynamic_komi[S_WHITE + 1];  // ãƒ€ã‚¤ãƒŠãƒŸãƒƒã‚¯ã‚³ãƒŸã®å€¤
+double default_komi = KOMI;        // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®ã‚³ãƒŸã®å€¤
 
-int board_x[BOARD_MAX];  // x•ûŒü‚ÌÀ•W  
-int board_y[BOARD_MAX];  // y•ûŒü‚ÌÀ•W  
+int board_pos_id[BOARD_MAX];  // ç›¤ä¸Šã®ä½ç½®ã®è­˜åˆ¥ç•ªå· 
 
-unsigned char eye[PAT3_MAX];        // –Ú‚Ìƒpƒ^[ƒ“
+int board_x[BOARD_MAX];  // xæ–¹å‘ã®åº§æ¨™  
+int board_y[BOARD_MAX];  // yæ–¹å‘ã®åº§æ¨™  
+
+unsigned char eye[PAT3_MAX];        // ç›®ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
 unsigned char false_eye[PAT3_MAX];
-unsigned char territory[PAT3_MAX];  // —Ì’n‚Ìƒpƒ^[ƒ“
-unsigned char nb4_empty[PAT3_MAX];  // ã‰º¶‰E‚Ì‹ó“_‚Ì”
-bool empty_pat[PAT3_MAX];           //  8‹ß–T‚ÉÎ‚ª‚È‚¢ƒpƒ^[ƒ“
+unsigned char territory[PAT3_MAX];  // é ˜åœ°ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
+unsigned char nb4_empty[PAT3_MAX];  // ä¸Šä¸‹å·¦å³ã®ç©ºç‚¹ã®æ•°
+eye_condition_t eye_condition[PAT3_MAX];
 
-int border_dis_x[BOARD_MAX];                     // x•ûŒü‚Ì‹——£   
-int border_dis_y[BOARD_MAX];                     // y•ûŒü‚Ì‹——£   
-int move_dis[PURE_BOARD_SIZE][PURE_BOARD_SIZE];  // ’…è‹——£  
+int border_dis_x[BOARD_MAX];                     // xæ–¹å‘ã®è·é›¢   
+int border_dis_y[BOARD_MAX];                     // yæ–¹å‘ã®è·é›¢   
+int move_dis[PURE_BOARD_SIZE][PURE_BOARD_SIZE];  // ç€æ‰‹è·é›¢  
 
-int onboard_pos[PURE_BOARD_MAX];  //  ÀÛ‚Ì”Õã‚ÌˆÊ’u‚Æ‚Ì‘Î‰    
+int onboard_pos[PURE_BOARD_MAX];  //  å®Ÿéš›ã®ç›¤ä¸Šã®ä½ç½®ã¨ã®å¯¾å¿œ
+int first_move_candidate[PURE_BOARD_MAX]; // åˆæ‰‹ã®å€™è£œæ‰‹
 
 int corner[4];
 int corner_neighbor[4][2];
 
+int cross[4];
+
+bool check_superko = false;  // è¶…åŠ«ã®ç¢ºèªã®è¨­å®š
+
 ///////////////
-// ŠÖ”éŒ¾  //
+// é–¢æ•°å®£è¨€  //
 ///////////////
 
-// 4‹ß–T‚Ì‹ó“_”‚Ì‰Šú‰»
-static void InitializeNeighbor(void);
+// 4è¿‘å‚ã®ç©ºç‚¹æ•°ã®åˆæœŸåŒ–
+static void InitializeNeighbor( void );
 
-// Šá‚Ìƒpƒ^[ƒ“‚Ìİ’è
-static void InitializeEye(void);
+// çœ¼ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®è¨­å®š
+static void InitializeEye( void );
 
-// ’n‚Ìƒpƒ^[ƒ“‚Ìİ’è
-static void InitializeTerritory(void);
+// åœ°ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®è¨­å®š
+static void InitializeTerritory( void );
 
-// 8‹ß–T‚ÉÎ‚ª‚È‚¢ƒpƒ^[ƒ“‚ğİ’è 
-static void InitializeNeighborEmptyPattern(void);
+// ãƒ€ãƒ¡(pos)ã‚’é€£(string)ã«åŠ ãˆã‚‹
+// åŠ ãˆãŸãƒ€ãƒ¡(pos)ã‚’è¿”ã™
+static int AddLiberty( string_t *string, const int pos, const int head );
 
-// ƒ_ƒ(pos)‚ğ˜A(string)‚É‰Á‚¦‚é
-// ‰Á‚¦‚½ƒ_ƒ(pos)‚ğ•Ô‚·
-static int AddLiberty(string_t *string, int pos, int head);
+// ãƒ€ãƒ¡(pos)ã‚’é€£(string)ã‹ã‚‰å–ã‚Šé™¤ã
+static void RemoveLiberty( game_info_t *game, string_t *string, const int pos );
 
-// ƒ_ƒ(pos)‚ğ˜A(string)‚©‚çæ‚èœ‚­
-static void RemoveLiberty(game_info_t *game, string_t *string, int pos);
+// ãƒ€ãƒ¡(pos)ã‚’é€£(string)ã‹ã‚‰å–ã‚Šé™¤ã
+static void PoRemoveLiberty( game_info_t *game, string_t *string, const int pos, const int color );
 
-// ƒ_ƒ(pos)‚ğ˜A(string)‚©‚çæ‚èœ‚­
-static void PoRemoveLiberty(game_info_t *game, string_t *string, int pos, int color);
+// çŸ³1ã¤ã®é€£ã‚’ä½œã‚‹
+static void MakeString( game_info_t *game, const int pos, const int color );
 
-// Î1‚Â‚Ì˜A‚ğì‚é
-static void MakeString(game_info_t *game, int pos, int color);
+// é€£ã¨1ã¤ã®çŸ³ã®æ¥ç¶š
+static void AddStone( game_info_t *game, int pos, int color, int id );
 
-// ˜A‚Æ1‚Â‚ÌÎ‚ÌÚ‘±
-static void AddStone(game_info_t *game, int pos, int color, int id);
+/// 2ã¤ä»¥ä¸Šã®é€£ã®æ¥ç¶š
+static void ConnectString( game_info_t *game, const int pos, const int color, const int connection, const int id[] );
 
-/// 2‚ÂˆÈã‚Ì˜A‚ÌÚ‘±
-static void ConnectString(game_info_t *game, int pos, int color, int connection, int id[]);
+// 2ã¤ä»¥ä¸Šã®é€£ã®ãƒãƒ¼ã‚¸
+static void MergeString( game_info_t *game, string_t *dst, string_t *src[3], const int n );
 
-// 2‚ÂˆÈã‚Ì˜A‚Ìƒ}[ƒW
-static void MergeString(game_info_t *game, string_t *dst, string_t *src[3], int n);
+// é€£ã«1ã¤çŸ³ã‚’åŠ ãˆã‚‹
+static void AddStoneToString( game_info_t *game, string_t *string, const int pos, const int head );
 
-// ˜A‚É1‚ÂÎ‚ğ‰Á‚¦‚é
-static void AddStoneToString(game_info_t *game, string_t *string, int pos, int head);
+// é€£ã‚’ç›¤ä¸Šã‹ã‚‰é™¤å»
+// å–ã‚Šé™¤ã„ãŸçŸ³ã®æ•°ã‚’è¿”ã™
+static int RemoveString( game_info_t *game, string_t *string );
 
-// ˜A‚ğ”Õã‚©‚çœ‹
-// æ‚èœ‚¢‚½Î‚Ì”‚ğ•Ô‚·
-static int RemoveString(game_info_t *game, string_t *string);
+// é€£ã‚’ç›¤ä¸Šã‹ã‚‰é™¤å»
+// å–ã‚Šé™¤ã„ãŸçŸ³ã®æ•°ã‚’è¿”ã™
+static int PoRemoveString( game_info_t *game, string_t *string, const int color );
 
-// ˜A‚ğ”Õã‚©‚çœ‹
-// æ‚èœ‚¢‚½Î‚Ì”‚ğ•Ô‚·
-static int PoRemoveString(game_info_t *game, string_t *string, int color);
+// éš£æ¥ã™ã‚‹é€£IDã®è¿½åŠ 
+static void AddNeighbor( string_t *string, const int id, const int head );
 
-// —×Ú‚·‚é˜AID‚Ì’Ç‰Á
-static void AddNeighbor(string_t *string, int id, int head);
+// éš£æ¥ã™ã‚‹é€£IDã®å‰Šé™¤
+static void RemoveNeighborString( string_t *string, const int id );
 
-// —×Ú‚·‚é˜AID‚Ìíœ
-static void RemoveNeighborString(string_t *string, int id);
+// éš…ã®ãƒã‚¬ãƒªå››ç›®ã®ç¢ºèª
+static void CheckBentFourInTheCorner( game_info_t *game );
 
+//  ç›¤ç«¯ã§ã®å‡¦ç†
+static bool IsFalseEyeConnection( const game_info_t *game, const int pos, const int color );
+
+
+//////////////////
+//  è¶…åŠ«ã®è¨­å®š  //
+//////////////////
+void
+SetSuperKo( const bool flag )
+{
+  check_superko = flag;
+}
 
 ///////////////////////
-//  ”Õ‚Ì‘å‚«‚³‚Ìİ’è  //
+//  ç›¤ã®å¤§ãã•ã®è¨­å®š  //
 ///////////////////////
 void
-SetBoardSize(int size)
+SetBoardSize( const int size )
 {
-	int i, x, y;
+  int i, x, y;
 
-	pure_board_size = size;
-	pure_board_max = size * size;
-	board_size = size + 2 * OB_SIZE;
-	board_max = board_size * board_size;
+  pure_board_size = size;
+  pure_board_max = size * size;
+  board_size = size + 2 * OB_SIZE;
+  board_max = board_size * board_size;
 
-	board_start = OB_SIZE;
-	board_end = (pure_board_size + OB_SIZE - 1);
+  board_start = OB_SIZE;
+  board_end = (pure_board_size + OB_SIZE - 1);
 
-	i = 0;
-	for (y = board_start; y <= board_end; y++) {
-		for (x = board_start; x <= board_end; x++) {
-			onboard_pos[i++] = POS(x, y);
-			board_x[POS(x, y)] = x;
-			board_y[POS(x, y)] = y;
-		}
-	}
+  i = 0;
+  for (y = board_start; y <= board_end; y++) {
+    for (x = board_start; x <= board_end; x++) {
+      onboard_pos[i++] = POS(x, y);
+      board_x[POS(x, y)] = x;
+      board_y[POS(x, y)] = y;
+    }
+  }
 
-	for (y = board_start; y <= board_end; y++) {
-		for (x = board_start; x <= (board_start + pure_board_size / 2); x++) {
-			border_dis_x[POS(x, y)] = x - (OB_SIZE - 1);
-			border_dis_x[POS(board_end + OB_SIZE - x, y)] = x - (OB_SIZE - 1);
-			border_dis_y[POS(y, x)] = x - (OB_SIZE - 1);
-			border_dis_y[POS(y, board_end + OB_SIZE - x)] = x - (OB_SIZE - 1);
-		}
-	}
+  for (y = board_start; y <= board_end; y++) {
+    for (x = board_start; x <= (board_start + pure_board_size / 2); x++) {
+      border_dis_x[POS(x, y)] = x - (OB_SIZE - 1);
+      border_dis_x[POS(board_end + OB_SIZE - x, y)] = x - (OB_SIZE - 1);
+      border_dis_y[POS(y, x)] = x - (OB_SIZE - 1);
+      border_dis_y[POS(y, board_end + OB_SIZE - x)] = x - (OB_SIZE - 1);
+    }
+  }
 
-	for (y = 0; y < pure_board_size; y++) {
-		for (x = 0; x < pure_board_size; x++) {
-			move_dis[x][y] = x + y + ((x > y) ? x : y);
-			if (move_dis[x][y] >= MOVE_DISTANCE_MAX) move_dis[x][y] = MOVE_DISTANCE_MAX - 1;
-		}
-	}
+  for (y = 0; y < pure_board_size; y++) {
+    for (x = 0; x < pure_board_size; x++) {
+      move_dis[x][y] = x + y + ((x > y) ? x : y);
+      if (move_dis[x][y] >= MOVE_DISTANCE_MAX) move_dis[x][y] = MOVE_DISTANCE_MAX - 1;
+    }
+  }
 
-	memset(board_pos_id, 0, sizeof(board_pos_id));
-	i = 1;
-	for (y = board_start; y <= (board_start + pure_board_size / 2); y++) {
-		for (x = board_start; x <= y; x++) {
-			board_pos_id[POS(x, y)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - x, y)] = i;
-			board_pos_id[POS(y, x)] = i;
-			board_pos_id[POS(y, board_end + OB_SIZE - x)] = i;
-			board_pos_id[POS(x, board_end + OB_SIZE - y)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - x, board_end + OB_SIZE - y)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - y, x)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - y, board_end + OB_SIZE - x)] = i;
-			i++;
-		}
-	}
+  fill_n(board_pos_id, BOARD_MAX, 0);
+  i = 1;
+  for (y = board_start; y <= (board_start + pure_board_size / 2); y++) {
+    for (x = board_start; x <= y; x++) {
+      board_pos_id[POS(x, y)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - x, y)] = i;
+      board_pos_id[POS(y, x)] = i;
+      board_pos_id[POS(y, board_end + OB_SIZE - x)] = i;
+      board_pos_id[POS(x, board_end + OB_SIZE - y)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - x, board_end + OB_SIZE - y)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - y, x)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - y, board_end + OB_SIZE - x)] = i;
+      i++;
+    }
+  }
 
-	corner[0] = POS(board_start, board_start);
-	corner[1] = POS(board_start, board_end);
-	corner[2] = POS(board_end, board_start);
-	corner[3] = POS(board_end, board_end);
+  first_move_candidates = 0;
+  for (y = board_start; y <= (board_start + board_end) / 2; y++) {
+    for (x = board_end + board_start - y; x <= board_end; x++) {
+      first_move_candidate[first_move_candidates++] = POS(x, y);
+    }
+  }
 
-	corner_neighbor[0][0] = EAST(POS(board_start, board_start));
-	corner_neighbor[0][1] = SOUTH(POS(board_start, board_start));
-	corner_neighbor[1][0] = NORTH(POS(board_start, board_end));
-	corner_neighbor[1][1] = EAST(POS(board_start, board_end));
-	corner_neighbor[2][0] = WEST(POS(board_end, board_start));
-	corner_neighbor[2][1] = SOUTH(POS(board_end, board_start));
-	corner_neighbor[3][0] = NORTH(POS(board_end, board_end));
-	corner_neighbor[3][1] = WEST(POS(board_end, board_end));
+  corner[0] = POS(board_start, board_start);
+  corner[1] = POS(board_start, board_end);
+  corner[2] = POS(board_end, board_start);
+  corner[3] = POS(board_end, board_end);
+
+  corner_neighbor[0][0] = EAST(POS(board_start, board_start));
+  corner_neighbor[0][1] = SOUTH(POS(board_start, board_start));
+  corner_neighbor[1][0] = NORTH(POS(board_start, board_end));
+  corner_neighbor[1][1] = EAST(POS(board_start, board_end));
+  corner_neighbor[2][0] = WEST(POS(board_end, board_start));
+  corner_neighbor[2][1] = SOUTH(POS(board_end, board_start));
+  corner_neighbor[3][0] = NORTH(POS(board_end, board_end));
+  corner_neighbor[3][1] = WEST(POS(board_end, board_end));
 }
 
 //////////////////////
-//  ƒRƒ~‚Ì’l‚Ìİ’è  //
+//  ã‚³ãƒŸã®å€¤ã®è¨­å®š  //
 //////////////////////
 void
-SetKomi(double new_komi)
+SetKomi( const double new_komi )
 {
-	default_komi = new_komi;
-	komi[0] = default_komi;
-	komi[S_BLACK] = default_komi + 1;
-	komi[S_WHITE] = default_komi - 1;
-	dynamic_komi[0] = default_komi;
-	dynamic_komi[S_BLACK] = default_komi + 1;
-	dynamic_komi[S_WHITE] = default_komi - 1;
+  default_komi = new_komi;
+  komi[0] = dynamic_komi[0] = default_komi;
+  komi[S_BLACK] = dynamic_komi[S_BLACK] = default_komi + 1;
+  komi[S_WHITE] = dynamic_komi[S_WHITE] = default_komi - 1;
 }
 
 
 ////////////////////////////
-//  ã‰º¶‰E‚ÌÀ•W‚Ì“±o  //
+//  ä¸Šä¸‹å·¦å³ã®åº§æ¨™ã®å°å‡º  //
 ////////////////////////////
 void
-GetNeighbor4(int neighbor4[4], int pos)
+GetNeighbor4( int neighbor4[4], const int pos )
 {
-	neighbor4[0] = NORTH(pos);
-	neighbor4[1] = WEST(pos);
-	neighbor4[2] = EAST(pos);
-	neighbor4[3] = SOUTH(pos);
+  neighbor4[0] = NORTH(pos);
+  neighbor4[1] =  WEST(pos);
+  neighbor4[2] =  EAST(pos);
+  neighbor4[3] = SOUTH(pos);
 }
 
 ////////////////////////
-//  ƒƒ‚ƒŠ—Ìˆæ‚ÌŠm•Û  //
+//  ãƒ¡ãƒ¢ãƒªé ˜åŸŸã®ç¢ºä¿  //
 ////////////////////////
 game_info_t *
-AllocateGame(void)
+AllocateGame( void )
 {
-	game_info_t *game;
-	game = (game_info_t*)malloc(sizeof(game_info_t));
-	memset(game, 0, sizeof(game_info_t));
+  game_info_t *game;
+  game = new game_info_t();
+  memset(game, 0, sizeof(game_info_t));
 
-	return game;
+  return game;
 }
 
 
 ////////////////////////
-//  ƒƒ‚ƒŠ—Ìˆæ‚Ì‰ğ•ú  //
+//  ãƒ¡ãƒ¢ãƒªé ˜åŸŸã®è§£æ”¾  //
 ////////////////////////
 void
-FreeGame(game_info_t *game)
+FreeGame( game_info_t *game )
 {
-	if (game) free(game);
+  if (game) delete game;
 }
 
 
 ////////////////////////
-//  ‘Î‹Çî•ñ‚Ì‰Šú‰»  //
+//  å¯¾å±€æƒ…å ±ã®åˆæœŸåŒ–  //
 ////////////////////////
 void
-InitializeBoard(game_info_t *game)
+InitializeBoard( game_info_t *game )
 {
-	int i, x, y, pos;
+  memset(game->record, 0, sizeof(record_t) * MAX_RECORDS);
+  memset(game->pat,    0, sizeof(pattern_t) * board_max);
 
-	memset(game->record, 0, sizeof(struct move) * MAX_RECORDS);
-	memset(game->board, 0, sizeof(char) * board_max);
-	memset(game->pat, 0, sizeof(struct pattern) * board_max);
-	memset(game->tactical_features1, 0, sizeof(unsigned int) * board_max);
-	memset(game->tactical_features2, 0, sizeof(unsigned int) * board_max);
-	memset(game->update_num, 0, sizeof(int) * S_OB);
-	memset(game->capture_num, 0, sizeof(int) * S_OB);
-	memset(game->update_pos, 0, sizeof(int) * S_OB * pure_board_max);
-	memset(game->capture_pos, 0, sizeof(int) * S_OB * pure_board_max);
+  fill_n(game->board, board_max, 0);              
+  fill_n(game->tactical_features1, board_max, 0);
+  fill_n(game->tactical_features2, board_max, 0);
+  fill_n(game->update_num,  (int)S_OB, 0);
+  fill_n(game->capture_num, (int)S_OB, 0);
+  fill(game->update_pos[0],  game->update_pos[S_OB], 0);
+  fill(game->capture_pos[0], game->capture_pos[S_OB], 0);
+  
+  game->current_hash = 0;
+  game->previous1_hash = 0;
+  game->previous2_hash = 0;
+  game->positional_hash = 0;
+  game->move_hash = 0;
 
-	game->current_hash = 0;
-	game->previous1_hash = 0;
-	game->previous2_hash = 0;
+  SetKomi(default_komi);
 
-	dynamic_komi[0] = default_komi;
-	dynamic_komi[S_BLACK] = default_komi + 1.0;
-	dynamic_komi[S_WHITE] = default_komi - 1.0;
+  game->moves = 1;
 
-	game->moves = 1;
+  game->pass_count = 0;
 
-	game->pass_count = 0;
+  fill_n(game->candidates, BOARD_MAX, false);
 
-	for (i = 0; i < BOARD_MAX; i++) {
-		game->candidates[i] = false;
-	}
+  for (int y = 0; y < board_size; y++){
+    for (int x = 0; x < OB_SIZE; x++) {
+      game->board[POS(x, y)] = S_OB;
+      game->board[POS(y, x)] = S_OB;
+      game->board[POS(y, board_size - 1 - x)] = S_OB;
+      game->board[POS(board_size - 1 - x, y)] = S_OB;
+    }
+  }
 
+  for (int y = board_start; y <= board_end; y++) {
+    for (int x = board_start; x <= board_end; x++) {
+      int pos = POS(x, y);
+      game->candidates[pos] = true;
+    }
+  }
 
-	for (y = 0; y < board_size; y++) {
-		for (x = 0; x < OB_SIZE; x++) {
-			game->board[POS(x, y)] = S_OB;
-			game->board[POS(y, x)] = S_OB;
-			game->board[POS(y, board_size - 1 - x)] = S_OB;
-			game->board[POS(board_size - 1 - x, y)] = S_OB;
-		}
-	}
+  for (int i = 0; i < MAX_STRING; i++) {
+    game->string[i].flag = false;
+  }
 
-	for (y = board_start; y <= board_end; y++) {
-		for (x = board_start; x <= board_end; x++) {
-			pos = POS(x, y);
-			game->candidates[pos] = true;
-		}
-	}
+  ClearPattern(game->pat);
 
-	for (i = 0; i < MAX_STRING; i++) {
-		game->string[i].flag = false;
-	}
-
-	ClearPattern(game->pat);
-
-	InitializeNeighbor();
-	InitializeNeighborEmptyPattern();
-	InitializeEye();
+  InitializeNeighbor();
+  InitializeEye();
 }
 
 
 //////////////
-//  ƒRƒs[  //
+//  ã‚³ãƒ”ãƒ¼  //
 //////////////
-void CopyGame(game_info_t *dst, game_info_t *src) {
+void
+CopyGame( game_info_t *dst, const game_info_t *src )
+{
+  memcpy(dst->record,             src->record,             sizeof(record_t) * MAX_RECORDS);
+  memcpy(dst->prisoner,           src->prisoner,           sizeof(int) * S_MAX);
+  memcpy(dst->board,              src->board,              sizeof(char) * board_max);  
+  memcpy(dst->pat,                src->pat,                sizeof(pattern_t) * board_max); 
+  memcpy(dst->string_id,          src->string_id,          sizeof(int) * STRING_POS_MAX);
+  memcpy(dst->string_next,        src->string_next,        sizeof(int) * STRING_POS_MAX);
+  memcpy(dst->candidates,         src->candidates,         sizeof(bool) * board_max); 
+  memcpy(dst->capture_num,        src->capture_num,        sizeof(int) * S_OB);
+  memcpy(dst->update_num,         src->update_num,         sizeof(int) * S_OB);
 
-	memcpy(dst->record, src->record, sizeof(struct move) * MAX_RECORDS);
-	memcpy(dst->prisoner, src->prisoner, sizeof(int) * S_MAX);
-	memcpy(dst->board, src->board, sizeof(char) * board_max);
-	memcpy(dst->pat, src->pat, sizeof(struct pattern) * board_max);
-	memcpy(dst->string_id, src->string_id, sizeof(int) * STRING_POS_MAX);
-	memcpy(dst->string_next, src->string_next, sizeof(int) * STRING_POS_MAX);
-	memcpy(dst->candidates, src->candidates, sizeof(bool) * board_max);
-	memcpy(dst->capture_num, src->capture_num, sizeof(int) * S_OB);
-	memcpy(dst->update_num, src->update_num, sizeof(int) * S_OB);
+  fill_n(dst->tactical_features1, board_max, 0);
+  fill_n(dst->tactical_features2, board_max, 0);
 
-	memset(dst->tactical_features1, 0, sizeof(unsigned int) * board_max);
-	memset(dst->tactical_features2, 0, sizeof(unsigned int) * board_max);
+  for (int i = 0; i < MAX_STRING; i++) {
+    if (src->string[i].flag) {
+      memcpy(&dst->string[i], &src->string[i], sizeof(string_t));
+    } else {
+      dst->string[i].flag = false;
+    }
+  }
 
+  dst->current_hash = src->current_hash;
+  dst->previous1_hash = src->previous1_hash;
+  dst->previous2_hash = src->previous2_hash;
+  dst->positional_hash = src->positional_hash;
+  dst->move_hash = src->move_hash;
 
-	for (auto i = 0; i < MAX_STRING; i++) {
-		if (src->string[i].flag) {
-			memcpy(&dst->string[i], &src->string[i], sizeof(string_t));
-		}
-		else {
-			dst->string[i].flag = false;
-		}
-	}
+  dst->pass_count = src->pass_count;
 
-	dst->current_hash = src->current_hash;
-	dst->previous1_hash = src->previous1_hash;
-	dst->previous2_hash = src->previous2_hash;
-
-	dst->pass_count = src->pass_count;
-
-	dst->moves = src->moves;
-	dst->ko_move = src->ko_move;
-	dst->ko_pos = src->ko_pos;
+  dst->moves = src->moves;
+  dst->ko_move = src->ko_move;
+  dst->ko_pos = src->ko_pos;
 }
 
 
 
 ////////////////////
-//  ’è”‚Ì‰Šú‰»  //
+//  å®šæ•°ã®åˆæœŸåŒ–  //
 ////////////////////
 void
-InitializeConst(void)
+InitializeConst( void )
 {
-	int x, y;
-	int i;
+  int i;
 
-	komi[0] = default_komi;
-	komi[S_BLACK] = default_komi + 1.0;
-	komi[S_WHITE] = default_komi - 1.0;
+  komi[0] = default_komi;
+  komi[S_BLACK] = default_komi + 1.0;
+  komi[S_WHITE] = default_komi - 1.0;
 
-	i = 0;
-	for (y = board_start; y <= board_end; y++) {
-		for (x = board_start; x <= board_end; x++) {
-			onboard_pos[i++] = POS(x, y);
-			board_x[POS(x, y)] = x;
-			board_y[POS(x, y)] = y;
-		}
-	}
+  i = 0;
+  for (int y = board_start; y <= board_end; y++) {
+    for (int x = board_start; x <= board_end; x++) {
+      onboard_pos[i++] = POS(x, y);
+      board_x[POS(x, y)] = x;
+      board_y[POS(x, y)] = y;
+    }
+  }
 
-	for (y = board_start; y <= board_end; y++) {
-		for (x = board_start; x <= (board_start + pure_board_size / 2); x++) {
-			border_dis_x[POS(x, y)] = x - (OB_SIZE - 1);
-			border_dis_x[POS(board_end + OB_SIZE - x, y)] = x - (OB_SIZE - 1);
-			border_dis_y[POS(y, x)] = x - (OB_SIZE - 1);
-			border_dis_y[POS(y, board_end + OB_SIZE - x)] = x - (OB_SIZE - 1);
-		}
-	}
+  for (int y = board_start; y <= board_end; y++) {
+    for (int x = board_start; x <= (board_start + pure_board_size / 2); x++) {
+      border_dis_x[POS(x, y)] = x - (OB_SIZE - 1);
+      border_dis_x[POS(board_end + OB_SIZE - x, y)] = x - (OB_SIZE - 1);
+      border_dis_y[POS(y, x)] = x - (OB_SIZE - 1);
+      border_dis_y[POS(y, board_end + OB_SIZE - x)] = x - (OB_SIZE - 1);
+    }
+  }
 
-	for (y = 0; y < pure_board_size; y++) {
-		for (x = 0; x < pure_board_size; x++) {
-			move_dis[x][y] = x + y + ((x > y) ? x : y);
-			if (move_dis[x][y] >= MOVE_DISTANCE_MAX) move_dis[x][y] = MOVE_DISTANCE_MAX - 1;
-		}
-	}
+  for (int y = 0; y < pure_board_size; y++) {
+    for (int x = 0; x < pure_board_size; x++) {
+      move_dis[x][y] = x + y + ((x > y) ? x : y);
+      if (move_dis[x][y] >= MOVE_DISTANCE_MAX) move_dis[x][y] = MOVE_DISTANCE_MAX - 1;
+    }
+  }
 
-	memset(board_pos_id, 0, sizeof(board_pos_id));
-	i = 1;
-	for (y = board_start; y <= (board_start + pure_board_size / 2); y++) {
-		for (x = board_start; x <= y; x++) {
-			board_pos_id[POS(x, y)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - x, y)] = i;
-			board_pos_id[POS(y, x)] = i;
-			board_pos_id[POS(y, board_end + OB_SIZE - x)] = i;
-			board_pos_id[POS(x, board_end + OB_SIZE - y)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - x, board_end + OB_SIZE - y)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - y, x)] = i;
-			board_pos_id[POS(board_end + OB_SIZE - y, board_end + OB_SIZE - x)] = i;
-			i++;
-		}
-	}
+  fill_n(board_pos_id, BOARD_MAX, 0);
+  i = 1;
+  for (int y = board_start; y <= (board_start + pure_board_size / 2); y++) {
+    for (int x = board_start; x <= y; x++) {
+      board_pos_id[POS(x, y)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - x, y)] = i;
+      board_pos_id[POS(y, x)] = i;
+      board_pos_id[POS(y, board_end + OB_SIZE - x)] = i;
+      board_pos_id[POS(x, board_end + OB_SIZE - y)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - x, board_end + OB_SIZE - y)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - y, x)] = i;
+      board_pos_id[POS(board_end + OB_SIZE - y, board_end + OB_SIZE - x)] = i;
+      i++;
+    }
+  }
 
-	corner[0] = POS(board_start, board_start);
-	corner[1] = POS(board_start, board_end);
-	corner[2] = POS(board_end, board_start);
-	corner[3] = POS(board_end, board_end);
+  first_move_candidates = 0;
+  for (int y = board_start; y <= (board_start + board_end) / 2; y++) {
+    for (int x = board_end + board_start - y; x <= board_end; x++) {
+      first_move_candidate[first_move_candidates++] = POS(x, y);
+    }
+  }
 
-	corner_neighbor[0][0] = EAST(POS(board_start, board_start));
-	corner_neighbor[0][1] = SOUTH(POS(board_start, board_start));
-	corner_neighbor[1][0] = NORTH(POS(board_start, board_end));
-	corner_neighbor[1][1] = EAST(POS(board_start, board_end));
-	corner_neighbor[2][0] = WEST(POS(board_end, board_start));
-	corner_neighbor[2][1] = SOUTH(POS(board_end, board_start));
-	corner_neighbor[3][0] = NORTH(POS(board_end, board_end));
-	corner_neighbor[3][1] = WEST(POS(board_end, board_end));
+  cross[0] = - board_size - 1;
+  cross[1] = - board_size + 1;
+  cross[2] = board_size - 1;
+  cross[3] = board_size + 1;
 
+  corner[0] = POS(board_start, board_start);
+  corner[1] = POS(board_start, board_end);
+  corner[2] = POS(board_end, board_start);
+  corner[3] = POS(board_end, board_end);
 
-	InitializeNeighbor();
-	InitializeEye();
-	InitializeTerritory();
+  corner_neighbor[0][0] =  EAST(POS(board_start, board_start));
+  corner_neighbor[0][1] = SOUTH(POS(board_start, board_start));
+  corner_neighbor[1][0] = NORTH(POS(board_start, board_end));
+  corner_neighbor[1][1] =  EAST(POS(board_start, board_end));
+  corner_neighbor[2][0] =  WEST(POS(board_end, board_start));
+  corner_neighbor[2][1] = SOUTH(POS(board_end, board_start));
+  corner_neighbor[3][0] = NORTH(POS(board_end, board_end));
+  corner_neighbor[3][1] =  WEST(POS(board_end, board_end));
+
+  InitializeNeighbor();
+  InitializeEye();
+  InitializeTerritory();
 }
 
 
 //////////////////////////////
-//  —×Ú‚·‚é‹ó“_”‚Ì‰Šú‰»  //
+//  éš£æ¥ã™ã‚‹ç©ºç‚¹æ•°ã®åˆæœŸåŒ–  //
 //////////////////////////////
 static void
-InitializeNeighbor(void)
+InitializeNeighbor( void )
 {
-	int i;
-	char empty;
+  for (int i = 0; i < PAT3_MAX; i++) {
+    char empty = 0;
 
-	for (i = 0; i < PAT3_MAX; i++) {
-		empty = 0;
+    if (((i >>  2) & 0x3) == S_EMPTY) empty++;
+    if (((i >>  6) & 0x3) == S_EMPTY) empty++;
+    if (((i >>  8) & 0x3) == S_EMPTY) empty++;
+    if (((i >> 12) & 0x3) == S_EMPTY) empty++;
 
-		if (((i >> 2) & 0x3) == S_EMPTY) empty++;
-		if (((i >> 6) & 0x3) == S_EMPTY) empty++;
-		if (((i >> 8) & 0x3) == S_EMPTY) empty++;
-		if (((i >> 12) & 0x3) == S_EMPTY) empty++;
-
-		nb4_empty[i] = empty;
-	}
+    nb4_empty[i] = empty;
+  }
 }
 
 
 ////////////////////////////
-//  Šá‚Ìƒpƒ^[ƒ“‚Ì‰Šú‰»  //
+//  çœ¼ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®åˆæœŸåŒ–  //
 ////////////////////////////
 static void
-InitializeEye(void)
+InitializeEye( void )
 {
-	int i, j;
-	unsigned int transp[8];
-	//  Šá‚Ìƒpƒ^[ƒ“‚Í‚»‚ê‚¼‚ê1‚©Š‚ ‚½‚è2ƒrƒbƒg‚Å•\Œ»
-	//	123
-	//	4*5
-	//	678
-	//  ‚»‚ê‚¼‚ê‚Ì”Ô†~2ƒrƒbƒg‚¾‚¯ƒVƒtƒg‚³‚¹‚é
-	//	O:©•ª‚ÌÎ
-	//	X:‘Šè‚ÌÎ
-	//	+:‹ó“_
-	//	#:”ÕŠO
-	const int eye_pat3[] = {
-		// +OO     XOO     +O+     XO+
-		// O*O     O*O     O*O     O*O
-		// OOO     OOO     OOO     OOO
-		0x5554, 0x5556, 0x5544, 0x5546,
+  unsigned int transp[8], pat3_transp16[16];
+  //  çœ¼ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã¯ãã‚Œãã‚Œ1ã‹æ‰€ã‚ãŸã‚Š2ãƒ“ãƒƒãƒˆã§è¡¨ç¾
+  //	123
+  //	4*5
+  //	678
+  //  ãã‚Œãã‚Œã®ç•ªå·Ã—2ãƒ“ãƒƒãƒˆã ã‘ã‚·ãƒ•ãƒˆã•ã›ã‚‹
+  //	O:è‡ªåˆ†ã®çŸ³
+  //	X:ç›¸æ‰‹ã®çŸ³
+  //	+:ç©ºç‚¹
+  //	#:ç›¤å¤–
+  const int eye_pat3[] = {
+    // +OO     XOO     +O+     XO+
+    // O*O     O*O     O*O     O*O
+    // OOO     OOO     OOO     OOO
+    0x5554, 0x5556, 0x5544, 0x5546,
 
-		// +OO     XOO     +O+     XO+
-		// O*O     O*O     O*O     O*O
-		// OO+     OO+     OO+     OO+
-		0x1554, 0x1556, 0x1544, 0x1546,
+    // +OO     XOO     +O+     XO+
+    // O*O     O*O     O*O     O*O
+    // OO+     OO+     OO+     OO+
+    0x1554, 0x1556, 0x1544, 0x1546,
 
-		// +OX     XO+     +OO     OOO
-		// O*O     O*O     O*O     O*O
-		// OO+     +O+     ###     ###
-		0x1564, 0x1146, 0xFD54, 0xFD55,
+    // +OX     XO+     +OO     OOO
+    // O*O     O*O     O*O     O*O
+    // OO+     +O+     ###     ###
+    0x1564, 0x1146, 0xFD54, 0xFD55,
 
-		// +O#     OO#     XOX     XOX
-		// O*#     O*#     O+O     O+O
-		// ###     ###     OOO     ###
-		0xFF74, 0xFF75, 0x5566, 0xFD66,
-	};
-	const int false_eye_pat3[2] = {
-		// XOO     XO# 
-		// O*O     O*# 
-		// ###     ### 
-		0xFD56, 0xFF76,
-	};
+    // +O#     OO#     XOX     XOX
+    // O*#     O*#     O+O     O+O
+    // ###     ###     OOO     ###
+    0xFF74, 0xFF75, 0x5566, 0xFD66,
+  };
+  const unsigned int false_eye_pat3[4] = {
+    // OOX     OOO     XOO     XO# 
+    // O*O     O*O     O*O     O*# 
+    // XOO     XOX     ###     ### 
+    0x5965, 0x9955, 0xFD56, 0xFF76,
+  };
 
-	// BBB
-	// B*B
-	// BBB
-	eye[0x5555] = S_BLACK;
+  const unsigned int complete_half_eye[12] = {
+    // XOX     OOX     XOX     XOX     XOX
+    // O*O     O*O     O*O     O*O     O*O
+    // OOO     XOO     +OO     XOO     +O+
+    0x5566, 0x5965, 0x5166, 0x5966, 0x1166,
+    // +OX     XOX     XOX     XOO     XO+
+    // O*O     O*O     O*O     O*O     O*O
+    // XO+     XO+     XOX     ###     ###
+    0x1964, 0x1966, 0x9966, 0xFD56, 0xFD46,
+    // XOX     XO#
+    // O*O     O*#
+    // ###     ###
+    0xFD66, 0xFF76
+  };
+  const unsigned int half_3_eye[2] = {
+    // +O+     XO+
+    // O*O     O*O
+    // +O+     +O+
+    0x1144, 0x1146
+  };
+  const unsigned int half_2_eye[4] = {
+    // +O+     XO+     +OX     +O+
+    // O*O     O*O     O*O     O*O
+    // +OO     +OO     +OO     ###
+    0x5144, 0x5146, 0x5164, 0xFD44,
+  };
+  const unsigned int half_1_eye[6] = {
+    // +O+     XO+     OOX     OOX     +OO
+    // O*O     O*O     O*O     O*O     O*O
+    // OOO     OOO     +OO     +OO     ###
+    0x5544, 0x5564, 0x5145, 0x5165, 0xFD54,
+    // +O#
+    // O*#
+    // ###
+    0xFF74,
+  };
+  const unsigned int complete_one_eye[5] = {
+    // OOO     +OO     XOO     OOO     OO#
+    // O*O     O*O     O*O     O*O     O*#
+    // OOO     OOO     OOO     ###     ###
+    0x5555, 0x5554, 0x5556, 0xFD55, 0xFF75,
+  };
 
-	// WWW
-	// W*W
-	// WWW
-	eye[Pat3Reverse(0x5555)] = S_WHITE;
+  fill_n(eye_condition, PAT3_MAX, E_NOT_EYE);
+  
+  for (int i = 0; i < 12; i++) {
+    Pat3Transpose16(complete_half_eye[i], pat3_transp16);
+    for (int j = 0; j < 16; j++) {
+      eye_condition[pat3_transp16[j]] = E_COMPLETE_HALF_EYE;
+    }
+  }
 
-	// +B+
-	// B*B
-	// +B+
-	eye[0x1144] = S_BLACK;
+  for (int i = 0; i < 2; i++) {
+    Pat3Transpose16(half_3_eye[i], pat3_transp16);
+    for (int j = 0; j < 16; j++) {
+      eye_condition[pat3_transp16[j]] = E_HALF_3_EYE;
+    }
+  }
 
-	// +W+
-	// W*W
-	// +W+
-	eye[Pat3Reverse(0x1144)] = S_WHITE;
+  for (int i = 0; i < 4; i++) {
+    Pat3Transpose16(half_2_eye[i], pat3_transp16);
+    for (int j = 0; j < 16; j++) {
+      eye_condition[pat3_transp16[j]] = E_HALF_2_EYE;
+    }
+  }
 
-	for (i = 0; i < 14; i++) {
-		Pat3Transpose8(eye_pat3[i], transp);
-		for (j = 0; j < 8; j++) {
-			eye[transp[j]] = S_BLACK;
-			eye[Pat3Reverse(transp[j])] = S_WHITE;
-		}
-	}
+  for (int i = 0; i < 6; i++) {
+    Pat3Transpose16(half_1_eye[i], pat3_transp16);
+    for (int j = 0; j < 16; j++) {
+      eye_condition[pat3_transp16[j]] = E_HALF_1_EYE;
+    }
+  }
 
-	for (i = 0; i < 2; i++) {
-		Pat3Transpose8(false_eye_pat3[i], transp);
-		for (j = 0; j < 8; j++) {
-			false_eye[transp[j]] = S_BLACK;
-			false_eye[Pat3Reverse(transp[j])] = S_WHITE;
-		}
-	}
+  for (int i = 0; i < 5; i++) {
+    Pat3Transpose16(complete_one_eye[i], pat3_transp16);
+    for (int j = 0; j < 16; j++) {
+      eye_condition[pat3_transp16[j]] = E_COMPLETE_ONE_EYE;
+    }
+  }
 
+  // BBB
+  // B*B
+  // BBB
+  eye[0x5555] = S_BLACK;
+
+  // WWW
+  // W*W
+  // WWW
+  eye[Pat3Reverse(0x5555)] = S_WHITE;
+
+  // +B+
+  // B*B
+  // +B+
+  eye[0x1144] = S_BLACK;
+
+  // +W+
+  // W*W
+  // +W+
+  eye[Pat3Reverse(0x1144)] = S_WHITE;
+
+  for (int i = 0; i < 14; i++) {
+    Pat3Transpose8(eye_pat3[i], transp);
+    for (int j = 0; j < 8; j++) {
+      eye[transp[j]] = S_BLACK;
+      eye[Pat3Reverse(transp[j])] = S_WHITE;
+    }
+  }
+
+  for (int i = 0; i < 4; i++) {
+    Pat3Transpose8(false_eye_pat3[i], transp);
+    for (int j = 0; j < 8; j++) {
+      false_eye[transp[j]] = S_BLACK;
+      false_eye[Pat3Reverse(transp[j])] = S_WHITE;
+    }
+  }
 
 }
 
 
 /////////////////////////////////////////
-//  ’n‚Ìƒpƒ^[ƒ“i4‹ß–T‚ª“¯Fj‚ğİ’è  //
+//  åœ°ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ï¼ˆ4è¿‘å‚ãŒåŒè‰²ï¼‰ã‚’è¨­å®š  //
 /////////////////////////////////////////
 static void
-InitializeTerritory(void)
+InitializeTerritory( void )
 {
-	int i;
-
-	for (i = 0; i < PAT3_MAX; i++) {
-		if ((i & 0x1144) == 0x1144) {
-			territory[i] = S_BLACK;
-		}
-		else if ((i & 0x2288) == 0x2288) {
-			territory[i] = S_WHITE;
-		}
-	}
-}
-
-
-/////////////////////////////////////
-//  8‹ß–T‚ÉÎ‚ª‚È‚¢ƒpƒ^[ƒ“‚ğİ’è  //
-/////////////////////////////////////
-static void
-InitializeNeighborEmptyPattern(void)
-{
-	int i, j;
-	unsigned int transp[8];
-	unsigned int empty_pattern[3] = {
-	  0x0000, 0x003f, 0xc33f
-	};
-
-	for (i = 0; i < PAT3_MAX; i++) {
-		empty_pat[i] = false;
-	}
-
-	for (i = 0; i < 3; i++) {
-		Pat3Transpose8(empty_pattern[i], transp);
-		for (j = 0; j < 8; j++) {
-			empty_pat[transp[j]] = true;
-		}
-	}
+  for (int i = 0; i < PAT3_MAX; i++) {
+    if ((i & 0x1144) == 0x1144) {
+      territory[i] = S_BLACK;
+    } else if ((i & 0x2288) == 0x2288) {
+      territory[i] = S_WHITE;
+    }
+  }
 }
 
 
 //////////////////
-//  ‡–@è”»’è  //
+//  åˆæ³•æ‰‹åˆ¤å®š  //
 //////////////////
 bool
-IsLegal(game_info_t *game, int pos, int color)
+IsLegal( const game_info_t *game, const int pos, const int color )
 {
-	// Šù‚ÉÎ‚ª‚ ‚é
-	if (game->board[pos] != S_EMPTY) {
-		return false;
+  // æ—¢ã«çŸ³ãŒã‚ã‚‹
+  if (game->board[pos] != S_EMPTY) {
+    return false;
+  }
+
+  // è‡ªæ®ºæ‰‹ã§ã‚ã‚‹
+  if (nb4_empty[Pat3(game->pat, pos)] == 0 &&
+      IsSuicide(game, game->string, color, pos)) {
+    return false;
+  }
+
+  // åŠ«ã§ã‚ã‚‹
+  if (game->ko_pos == pos &&
+      game->ko_move == (game->moves - 1)) {
+    return false;
+  }
+
+  // è¶…åŠ«ã§ã‚ã‚‹
+  if (check_superko &&
+      pos != PASS) {
+    const int other = FLIP_COLOR(color);
+    const string_t *string = game->string;
+    const int *string_id = game->string_id;
+    const int *string_next = game->string_next;
+    unsigned long long hash = game->positional_hash;
+    int neighbor4[4], check[4], checked = 0, id, str_pos;
+    bool flag;
+
+    GetNeighbor4(neighbor4, pos);
+
+    // ã“ã®1æ‰‹ã§çŸ³ã‚’å–ã‚Œã‚‹æ™‚ã®å‡¦ç†
+    for (int i = 0; i < 4; i++) {
+      if (game->board[neighbor4[i]] == other) {
+	id = string_id[neighbor4[i]];
+	if (string[id].libs == 1) {
+	  flag = false;	
+	  for (int j = 0; j < checked; j++) {
+	    if (check[j] == id) {
+	      flag = true;
+	    }
+	  }
+	  if (flag) {
+	    continue;
+	  }
+	  str_pos = string[id].origin;
+	  do {
+	    hash ^= hash_bit[str_pos][other];
+	    str_pos = string_next[str_pos];
+	  } while (str_pos != STRING_END);
 	}
+	check[checked++] = id;
+      }
+    }
 
-	// ©Eè‚Å‚ ‚é
-	if (nb4_empty[Pat3(game->pat, pos)] == 0 &&
-		IsSuicide(game, game->string, color, pos)) {
-		return false;
-	}
-
-	// …‚Å‚ ‚é
-	if (game->ko_pos == pos &&
-		game->ko_move == (game->moves - 1)) {
-		return false;
-	}
-
-	return true;
-}
-
-
-////////////////////
-//  ”Õ’[‚Å‚Ìˆ—  //
-////////////////////
-bool
-IsEdgeConnection(game_info_t *game, int pos, int color)
-{
-	// +++++XOO#
-	// +++++XO+#
-	// +++XXXOO#
-	// ++XOOXXO#
-	// +++O*OO*#
-	// #########
-	// ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“’†‚Éã‚Ì‹Ç–Ê‚Ì*‚ğŠá‚Æ”F¯‚¹‚¸‚É‘Å‚Â‚æ‚¤‚É,
-	// ++++XXXX#
-	// +++XXOOO#
-	// +++XO+XO#
-	// +++XOOO*#
-	// #########
-	// ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“’†‚Éã‚Ì‹Ç–Ê‚Ì*‚ğŠá‚Æ”F¯‚µ‚Ä‘Å‚½‚È‚¢‚æ‚¤‚É‚·‚é.
-	//
-	// —×Ú‚·‚é2‚Â‚Ì©•ª‚Ì˜A‚ÌŒÄ‹z“_‚É‹¤’Ê‚·‚é‚à‚Ì‚ª‚È‚¯‚ê‚Î‘Å‚¿
-	// ‹¤’Ê‚·‚é‚à‚Ì‚ª‚ ‚ê‚Î‘Å‚½‚È‚¢‚æ‚¤‚É‚µ‚Ä‚¢‚é.
-	// ˆÈ‰º‚Ì‹Ç–Ê‚ÍŒë”F¯‚µ‚Ä‘Å‚Á‚Ä‚µ‚Ü‚¤‚Ì‚Å—v‘Î‰.
-	// ++++XXXX#
-	// +++XXOOO#
-	// +++XOX+O#
-	// +++XO+XO#
-	// +++XOOO*#
-	// #########
-	string_t *string = game->string;
-	int *string_id = game->string_id;
-	char *board = game->board;
-	int checked_string[4] = { 0 };
-	int string_liberties[4] = { 0 };
-	int strings = 0;
-	int id, lib, libs = 0, lib_sum;
-	int liberty[STRING_LIB_MAX];
-	int i, j, count;
-	bool checked;
-	int neighbor4[4];
-	bool already_checked;
-
-	GetNeighbor4(neighbor4, pos);
-
-	// —×Ú‚·‚éÀ•W‚ª©•ª‚Ì˜A‚È‚ç
-	// ‚»‚Ì˜A‚ÌŒÄ‹z“_‚ğæ‚èo‚·
-	for (i = 0; i < 4; i++) {
-		if (board[neighbor4[i]] == color) {
-			id = string_id[neighbor4[i]];
-			already_checked = false;
-			for (j = 0; j < strings; j++) {
-				if (checked_string[j] == id) {
-					already_checked = true;
-					break;
-				}
-			}
-			if (already_checked) continue;
-			lib = string[id].lib[0];
-			count = 0;
-			while (lib != LIBERTY_END) {
-				if (lib != pos) {
-					checked = false;
-					for (i = 0; i < libs; i++) {
-						if (liberty[i] == lib) {
-							checked = true;
-							break;
-						}
-					}
-					if (!checked) {
-						liberty[libs + count] = lib;
-						count++;
-					}
-				}
-				lib = string[id].lib[lib];
-			}
-			libs += count;
-			string_liberties[strings] = string[id].libs;
-			checked_string[strings++] = id;
-		}
-	}
-
-	// ‚»‚Ì˜A‚ª‚Á‚Ä‚¢‚éŒÄ‹z“_‚ğ‹‚ß‚é
-	for (i = 0, lib_sum = 0; i < strings; i++) {
-		lib_sum += string_liberties[i] - 1;
-	}
-
-	// —×Ú‚·‚é˜A‚ªˆê‘±‚«‚È‚çŠá‚È‚Ì‚Åfalse‚ğ•Ô‚·
-	if (strings == 1) {
-		return false;
-	}
-
-	// 2‚Â‚Ì˜A‚ªŒÄ‹z“_‚ğ‹¤—L‚µ‚Ä‚¢‚È‚¯‚ê‚Îtrue
-	// ‚»‚¤‚Å‚È‚¯‚ê‚Îfalse‚ğ•Ô‚·
-	if (libs == lib_sum) {
-		return true;
-	}
-	else {
-		return false;
-	}
-
-}
-
-
-////////////////////////////////////
-//  ‡–@è‚Å‚©‚Â–Ú‚Å‚È‚¢‚©‚ğ”»’è  //
-////////////////////////////////////
-bool
-IsLegalNotEye(game_info_t *game, int pos, int color)
-{
-	int *string_id = game->string_id;
-	string_t *string = game->string;
-
-	// Šù‚ÉÎ‚ª‚ ‚é
-	if (game->board[pos] != S_EMPTY) {
-		// Œó•âè‚©‚çœŠO
-		game->candidates[pos] = false;
-
-		return false;
-	}
-
-	// Šá
-	if (eye[Pat3(game->pat, pos)] != color ||
-		string[string_id[NORTH(pos)]].libs == 1 ||
-		string[string_id[EAST(pos)]].libs == 1 ||
-		string[string_id[SOUTH(pos)]].libs == 1 ||
-		string[string_id[WEST(pos)]].libs == 1) {
-
-		// ©Eè‚©‚Ç‚¤‚©
-		if (nb4_empty[Pat3(game->pat, pos)] == 0 &&
-			IsSuicide(game, string, color, pos)) {
-			return false;
-		}
-
-		// …
-		if (game->ko_pos == pos &&
-			game->ko_move == (game->moves - 1)) {
-			return false;
-		}
-
-		// ”Õ’[‚Ì“Áêˆ—
-		if (false_eye[Pat3(game->pat, pos)] == color) {
-			if (IsEdgeConnection(game, pos, color)) {
-				return true;
-			}
-			else {
-				game->candidates[pos] = false;
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	// Œó•âè‚©‚çœŠO
-	game->candidates[pos] = false;
-
+    // posã«colorã‚’ç½®ã„ãŸã¨ä»®å®š
+    hash ^= hash_bit[pos][color];
+    
+    for (int i = 0; i < game->moves; i++) {
+      if (game->record[i].hash == hash) {
 	return false;
+      }
+    }
+  }
+  
+  return true;
 }
 
 
 ////////////////////
-//  ©Eè‚Ì”»’è  //
+//  ç›¤ç«¯ã§ã®å‡¦ç†  //
+////////////////////
+static bool
+IsFalseEyeConnection( const game_info_t *game, const int pos, const int color )
+{
+  // +++++XOO#
+  // +++++XO+#
+  // +++XXXOO#
+  // ++XOOXXO#
+  // +++O*OO*#
+  // #########
+  // ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ä¸­ã«ä¸Šã®å±€é¢ã®*ã‚’çœ¼ã¨èªè­˜ã›ãšã«æ‰“ã¤ã‚ˆã†ã«,
+  // ++++XXXX#
+  // +++XXOOO#
+  // +++XO+XO#
+  // +++XOOO*#
+  // #########
+  // ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ä¸­ã«ä¸Šã®å±€é¢ã®*ã‚’çœ¼ã¨èªè­˜ã—ã¦æ‰“ãŸãªã„ã‚ˆã†ã«ã™ã‚‹.
+  //
+  // éš£æ¥ã™ã‚‹2ã¤ã®è‡ªåˆ†ã®é€£ã®å‘¼å¸ç‚¹ã«å…±é€šã™ã‚‹ã‚‚ã®ãŒãªã‘ã‚Œã°æ‰“ã¡
+  // å…±é€šã™ã‚‹ã‚‚ã®ãŒã‚ã‚Œã°æ‰“ãŸãªã„ã‚ˆã†ã«ã—ã¦ã„ã‚‹.
+  // ä»¥ä¸‹ã®å±€é¢ã¯èª¤èªè­˜ã—ã¦æ‰“ã£ã¦ã—ã¾ã†ã®ã§è¦å¯¾å¿œ.
+  // ++++XXXX#
+  // +++XXOOO#
+  // +++XOX+O#
+  // +++XO+XO#
+  // +++XOOO*#
+  // #########
+  const string_t *string = game->string;
+  const int *string_id = game->string_id;
+  const char *board = game->board;
+  int checked_string[4] = { 0 };
+  int string_liberties[4] = { 0 };
+  int strings = 0;
+  int id, lib, libs = 0, lib_sum = 0;
+  int liberty[STRING_LIB_MAX];
+  int count;
+  bool checked;
+  int neighbor4[4], neighbor;
+  bool already_checked;
+  int other = FLIP_COLOR(color);
+  int player_id[4] = {0};
+  int player_ids = 0;
+
+  // æ¬ ã‘çœ¼ã‚’æ§‹æˆã™ã‚‹é€£ã®IDã‚’å–ã‚Šå‡ºã™
+  GetNeighbor4(neighbor4, pos);
+  for (int i = 0; i < 4; i++) {
+    checked = false;
+    for (int j = 0; j < player_ids; j++) {
+      if (player_id[j] == string_id[neighbor4[i]]) {
+	checked = true;
+      }
+    }
+    if (!checked) {
+      player_id[player_ids++] = string_id[neighbor4[i]];
+    }
+  }
+
+  // æ–œã‚æ–¹å‘ã«å–ã‚Œã‚‹, ã¾ãŸã¯å–ã‚Œãã†ãªçŸ³ãŒã‚ã£ãŸã‚‰falseã‚’è¿”ã™
+  for (int i = 0; i < 4; i++) {
+    if (board[pos + cross[i]] == other) {
+      id = string_id[pos + cross[i]];
+      if (IsAlreadyCaptured(game, other, id, player_id, player_ids)) {
+	return false;
+      }
+    }
+  }
+
+  // éš£æ¥ã™ã‚‹åº§æ¨™ãŒè‡ªåˆ†ã®é€£ãªã‚‰
+  // ãã®é€£ã®å‘¼å¸ç‚¹ã‚’å–ã‚Šå‡ºã™
+  for (int i = 0; i < 4; i++) {
+    if (board[neighbor4[i]] == color) {
+      id = string_id[neighbor4[i]];
+      if (string[id].libs == 2) {
+	lib = string[id].lib[0];
+	if (lib == pos) lib = string[id].lib[lib];
+	if (IsSelfAtari(game, color, lib)) return true;
+      }
+      already_checked = false;
+      for (int j = 0; j < strings; j++) {
+	if (checked_string[j] == id) {
+	  already_checked = true;
+	  break;
+	}
+      }
+      if (already_checked) continue;
+      lib = string[id].lib[0];
+      count = 0;
+      while (lib != LIBERTY_END) {
+	if (lib != pos) {
+	  checked = false;
+	  for (i = 0; i < libs; i++) {
+	    if (liberty[i] == lib) {
+	      checked = true;
+	      break;
+	    }
+	  }
+	  if (!checked) {
+	    liberty[libs + count] = lib;
+	    count++;
+	  }
+	}
+	lib = string[id].lib[lib];
+      }
+      libs += count;
+      string_liberties[strings] = string[id].libs;
+      checked_string[strings++] = id;
+    }
+  }
+
+  // ãã®é€£ãŒæŒã£ã¦ã„ã‚‹å‘¼å¸ç‚¹ã‚’æ±‚ã‚ã‚‹
+  for (int i = 0; i < strings; i++) {
+    lib_sum += string_liberties[i] - 1;
+  }
+
+  neighbor = string[checked_string[0]].neighbor[0];
+  while (neighbor != NEIGHBOR_END) {
+    if (string[neighbor].libs == 1 &&
+	string[checked_string[1]].neighbor[neighbor] != 0) {
+      return false;
+    }
+    neighbor = string[checked_string[0]].neighbor[neighbor];
+  }
+
+  // éš£æ¥ã™ã‚‹é€£ãŒä¸€ç¶šããªã‚‰çœ¼ãªã®ã§falseã‚’è¿”ã™
+  if (strings == 1) {
+    return false;
+  }
+
+  // 2ã¤ã®é€£ãŒå‘¼å¸ç‚¹ã‚’å…±æœ‰ã—ã¦ã„ãªã‘ã‚Œã°true
+  // ãã†ã§ãªã‘ã‚Œã°falseã‚’è¿”ã™
+  if (libs == lib_sum) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
+////////////////////////////////////
+//  åˆæ³•æ‰‹ã§ã‹ã¤ç›®ã§ãªã„ã‹ã‚’åˆ¤å®š  //
+////////////////////////////////////
+bool
+IsLegalNotEye( game_info_t *game, const int pos, const int color )
+{
+  const int *string_id = game->string_id;
+  const string_t *string = game->string;
+
+  // æ—¢ã«çŸ³ãŒã‚ã‚‹
+  if (game->board[pos] != S_EMPTY) {
+    // å€™è£œæ‰‹ã‹ã‚‰é™¤å¤–
+    game->candidates[pos] = false;
+
+    return false;
+  }
+
+  if (game->seki[pos]) {
+    return false;
+  }
+
+  // çœ¼
+  if (eye[Pat3(game->pat, pos)] != color ||
+      string[string_id[NORTH(pos)]].libs == 1 ||
+      string[string_id[ EAST(pos)]].libs == 1 ||
+      string[string_id[SOUTH(pos)]].libs == 1 ||
+      string[string_id[ WEST(pos)]].libs == 1){
+
+    // è‡ªæ®ºæ‰‹ã‹ã©ã†ã‹
+    if (nb4_empty[Pat3(game->pat, pos)] == 0 &&
+	IsSuicide(game, string, color, pos)) {
+      return false;
+    }
+
+    // åŠ«
+    if (game->ko_pos == pos &&
+	game->ko_move == (game->moves - 1)) {
+      return false;
+    }
+
+    // ç›¤ç«¯ã®ç‰¹æ®Šå‡¦ç†
+    if (false_eye[Pat3(game->pat, pos)] == color) {
+      if (IsFalseEyeConnection(game, pos, color)) {
+	return true;
+      } else {
+	game->candidates[pos] = false;
+	return false;
+      }
+    }
+
+    return true;
+  }
+
+  // å€™è£œæ‰‹ã‹ã‚‰é™¤å¤–
+  game->candidates[pos] = false;
+
+  return false;
+}
+
+
+////////////////////
+//  è‡ªæ®ºæ‰‹ã®åˆ¤å®š  //
 ////////////////////
 bool
-IsSuicide(game_info_t *game, string_t *string, int color, int pos)
+IsSuicide( const game_info_t *game, const string_t *string, const int color, const int pos )
 {
-	char *board = game->board;
-	int *string_id = game->string_id;
-	int other = FLIP_COLOR(color);
-	int neighbor4[4], i;
+  const char *board = game->board;
+  const int *string_id = game->string_id;
+  const int other = FLIP_COLOR(color);
+  int neighbor4[4], i;
 
-	GetNeighbor4(neighbor4, pos);
+  GetNeighbor4(neighbor4, pos);
 
-	// —×Ú‚·‚é‚ÌÎ‚É‚Â‚¢‚Ä‚Ì”»’è
-	// —×Ú‚·‚éÎ‚ª‘Šè‚Å‚àA‚»‚ÌÎ‚ğŠÜ‚Ş˜A‚ÌŒÄ‹z“_‚ª1‚Ì‚Í‡–@è
-	// —×Ú‚·‚éÎ‚ª©•ª‚ÅA‚»‚ÌÎ‚ğŠÜ‚Ş˜A‚ÌŒÄ‹z“_‚ª2ˆÈã‚Ì‚Í‡–@è
-	for (i = 0; i < 4; i++) {
-		if (board[neighbor4[i]] == other &&
-			string[string_id[neighbor4[i]]].libs == 1) {
-			return false;
-		}
-		else if (board[neighbor4[i]] == color &&
-			string[string_id[neighbor4[i]]].libs > 1) {
-			return false;
-		}
-	}
+  // éš£æ¥ã™ã‚‹ã®çŸ³ã«ã¤ã„ã¦ã®åˆ¤å®š
+  // éš£æ¥ã™ã‚‹çŸ³ãŒç›¸æ‰‹ã§ã‚‚ã€ãã®çŸ³ã‚’å«ã‚€é€£ã®å‘¼å¸ç‚¹ãŒ1ã®æ™‚ã¯åˆæ³•æ‰‹
+  // éš£æ¥ã™ã‚‹çŸ³ãŒè‡ªåˆ†ã§ã€ãã®çŸ³ã‚’å«ã‚€é€£ã®å‘¼å¸ç‚¹ãŒ2ä»¥ä¸Šã®æ™‚ã¯åˆæ³•æ‰‹
+  for (i = 0; i < 4; i++) {
+    if (board[neighbor4[i]] == other &&
+	string[string_id[neighbor4[i]]].libs == 1) {
+      return false;
+    } else if (board[neighbor4[i]] == color &&
+	       string[string_id[neighbor4[i]]].libs > 1) {
+      return false;
+    }
+  }
 
-	return true;
+  return true;
 }
 
 
 ////////////////
-//  Î‚ğ’u‚­  //
+//  çŸ³ã‚’ç½®ã  //
 ////////////////
 void
-PutStone(game_info_t *game, int pos, int color)
+PutStone( game_info_t *game, const int pos, const int color )
 {
-	int *string_id = game->string_id;
-	char *board = game->board;
-	string_t *string = game->string;
-	int other = FLIP_COLOR(color);
-	int connection = 0;
-	int connect[4] = { 0 };
-	int prisoner = 0;
-	int neighbor[4];
-	int i;
+  const int *string_id = game->string_id;
+  char *board = game->board;
+  string_t *string = game->string;
+  const int other = FLIP_COLOR(color);
+  int connection = 0;
+  int connect[4] = { 0 };
+  int prisoner = 0;
+  int neighbor[4];
 
-	// ‚±‚Ìè”Ô‚Ì’…è‚Å‘Å‚¿ã‚°‚½Î‚Ì”‚ğ0‚É‚·‚é
-	game->capture_num[color] = 0;
+  // ã“ã®æ‰‹ç•ªã®ç€æ‰‹ã§æ‰“ã¡ä¸Šã’ãŸçŸ³ã®æ•°ã‚’0ã«ã™ã‚‹
+  game->capture_num[color] = 0;
 
-	// ’…è‰ÓŠ‚Ìíp“I“Á’¥‚ğ‘S‚ÄÁ‚·
-	game->tactical_features1[pos] = 0;
-	game->tactical_features2[pos] = 0;
+  // ç€æ‰‹ç®‡æ‰€ã®æˆ¦è¡“çš„ç‰¹å¾´ã‚’å…¨ã¦æ¶ˆã™
+  game->tactical_features1[pos] = 0;
+  game->tactical_features2[pos] = 0;
 
-	game->previous2_hash = game->previous1_hash;
-	game->previous1_hash = game->current_hash;
+  game->previous2_hash = game->previous1_hash;
+  game->previous1_hash = game->current_hash;
 
-	if (game->ko_move != 0 && game->ko_move == game->moves - 1) {
-		game->current_hash ^= hash_bit[game->ko_pos][HASH_KO];
-	}
+  if (game->ko_move != 0 && game->ko_move == game->moves - 1) {
+    game->current_hash ^= hash_bit[game->ko_pos][HASH_KO];
+  }
 
-	// ’…è‰ÓŠ‚ÆF‚ğ‹L˜^
-	if (game->moves < MAX_RECORDS) {
-		game->record[game->moves].color = color;
-		game->record[game->moves].pos = pos;
-	}
+  // ç€æ‰‹ç®‡æ‰€ã¨è‰²ã‚’è¨˜éŒ²
+  if (game->moves < MAX_RECORDS) {
+    game->record[game->moves].color = color;
+    game->record[game->moves].pos = pos;
+    game->move_hash ^= move_bit[game->moves][pos][color];
+  }
 
-	// ’…è‚ªƒpƒX‚È‚çè”‚ği‚ß‚ÄI—¹
-	if (pos == PASS) {
-		game->current_hash ^= hash_bit[game->pass_count++][HASH_PASS];
-		if (game->pass_count >= BOARD_MAX) {
-			game->pass_count = 0;
-		}
-		game->moves++;
-		return;
-	}
+  // ç€æ‰‹ãŒãƒ‘ã‚¹ãªã‚‰æ‰‹æ•°ã‚’é€²ã‚ã¦çµ‚äº†
+  if (pos == PASS) {
+    if (game->moves < MAX_RECORDS) {
+      game->record[game->moves].hash = game->positional_hash;
+    }
+    game->current_hash ^= hash_bit[game->pass_count++][HASH_PASS];
+    if (game->pass_count >= BOARD_MAX) { 
+      game->pass_count = 0;
+    }
+    game->moves++;
+    return;
+  }
 
-	// Î‚ğ’u‚­
-	board[pos] = (char)color;
+  // çŸ³ã‚’ç½®ã
+  board[pos] = (char)color;
 
-	// Œó•âè‚©‚çœŠO
-	game->candidates[pos] = false;
+  // å€™è£œæ‰‹ã‹ã‚‰é™¤å¤–
+  game->candidates[pos] = false;
 
-	game->current_hash ^= hash_bit[pos][color];
+  game->current_hash ^= hash_bit[pos][color];
+  game->positional_hash ^= hash_bit[pos][color];
 
-	// ƒpƒ^[ƒ“‚ÌXV(MD5)
-	UpdatePatternStone(game->pat, color, pos);
+  // ãƒ‘ã‚¿ãƒ¼ãƒ³ã®æ›´æ–°(MD5)
+  UpdatePatternStone(game->pat, color, pos);
 
-	// ’…è“_‚Ìã‰º¶‰E‚ÌÀ•W‚ğ“±o
-	GetNeighbor4(neighbor, pos);
+  // ç€æ‰‹ç‚¹ã®ä¸Šä¸‹å·¦å³ã®åº§æ¨™ã‚’å°å‡º
+  GetNeighbor4(neighbor, pos);
 
-	// ’…è‰ÓŠ‚Ìã‰º¶‰E‚ÌŠm”F
-	// ©•ª‚Ì˜A‚ª‚ ‚ê‚Î, ‚»‚Ì˜A‚ÌŒÄ‹z“_‚ğ1‚ÂŒ¸‚ç‚µ, Ú‘±Œó•â‚É“ü‚ê‚é
-	// “G‚Ì˜A‚Å‚ ‚ê‚Î, ‚»‚Ì˜A‚ÌŒÄ‹z“_‚ğ1‚ÂŒ¸‚ç‚µ, ŒÄ‹z“_‚ª0‚É‚È‚Á‚½‚çæ‚èœ‚­
-	for (i = 0; i < 4; i++) {
-		if (board[neighbor[i]] == color) {
-			RemoveLiberty(game, &string[string_id[neighbor[i]]], pos);
-			connect[connection++] = string_id[neighbor[i]];
-		}
-		else if (board[neighbor[i]] == other) {
-			RemoveLiberty(game, &string[string_id[neighbor[i]]], pos);
-			if (string[string_id[neighbor[i]]].libs == 0) {
-				prisoner += RemoveString(game, &string[string_id[neighbor[i]]]);
-			}
-		}
-	}
+  // ç€æ‰‹ç®‡æ‰€ã®ä¸Šä¸‹å·¦å³ã®ç¢ºèª
+  // è‡ªåˆ†ã®é€£ãŒã‚ã‚Œã°, ãã®é€£ã®å‘¼å¸ç‚¹ã‚’1ã¤æ¸›ã‚‰ã—, æ¥ç¶šå€™è£œã«å…¥ã‚Œã‚‹
+  // æ•µã®é€£ã§ã‚ã‚Œã°, ãã®é€£ã®å‘¼å¸ç‚¹ã‚’1ã¤æ¸›ã‚‰ã—, å‘¼å¸ç‚¹ãŒ0ã«ãªã£ãŸã‚‰å–ã‚Šé™¤ã
+  for (int i = 0; i < 4; i++) {
+    if (board[neighbor[i]] == color) {
+      RemoveLiberty(game, &string[string_id[neighbor[i]]], pos);
+      connect[connection++] = string_id[neighbor[i]];
+    } else if (board[neighbor[i]] == other) {
+      RemoveLiberty(game, &string[string_id[neighbor[i]]], pos);
+      if (string[string_id[neighbor[i]]].libs == 0) {
+	prisoner += RemoveString(game, &string[string_id[neighbor[i]]]);
+      }
+    }
+  }
 
-	// ‘Å‚¿ã‚°‚½Î‚ğƒAƒQƒnƒ}‚É’Ç‰Á
-	game->prisoner[color] += prisoner;
+  // æ‰“ã¡ä¸Šã’ãŸçŸ³ã‚’ã‚¢ã‚²ãƒãƒã«è¿½åŠ 
+  game->prisoner[color] += prisoner;
 
-	// Ú‘±Œó•â‚ª‚È‚¯‚ê‚Î, V‚µ‚¢˜A‚ğì¬‚µ‚Ä, …‚©‚Ç‚¤‚©‚ÌŠm”F‚ğ‚·‚é
-	// Ú‘±Œó•â‚ª1‚Â‚È‚ç‚Î, ‚»‚Ì˜A‚ÉÎ‚ğ’Ç‰Á‚·‚é
-	// Ú‘±Œó•â‚ª2‚ÂˆÈã‚È‚ç‚Î, ˜A“¯m‚ğŒq‚¬‡‚í‚¹‚Ä, Î‚ğ’Ç‰Á‚·‚é
-	if (connection == 0) {
-		MakeString(game, pos, color);
-		if (prisoner == 1 &&
-			string[string_id[pos]].libs == 1) {
-			game->ko_move = game->moves;
-			game->ko_pos = string[string_id[pos]].lib[0];
-			game->current_hash ^= hash_bit[game->ko_pos][HASH_KO];
-		}
-	}
-	else if (connection == 1) {
-		AddStone(game, pos, color, connect[0]);
-	}
-	else {
-		ConnectString(game, pos, color, connection, connect);
-	}
+  // æ¥ç¶šå€™è£œãŒãªã‘ã‚Œã°, æ–°ã—ã„é€£ã‚’ä½œæˆã—ã¦, åŠ«ã‹ã©ã†ã‹ã®ç¢ºèªã‚’ã™ã‚‹
+  // æ¥ç¶šå€™è£œãŒ1ã¤ãªã‚‰ã°, ãã®é€£ã«çŸ³ã‚’è¿½åŠ ã™ã‚‹
+  // æ¥ç¶šå€™è£œãŒ2ã¤ä»¥ä¸Šãªã‚‰ã°, é€£åŒå£«ã‚’ç¹‹ãåˆã‚ã›ã¦, çŸ³ã‚’è¿½åŠ ã™ã‚‹
+  if (connection == 0) {
+    MakeString(game, pos, color);
+    if (prisoner == 1 &&
+	string[string_id[pos]].libs == 1) {
+      game->ko_move = game->moves;
+      game->ko_pos = string[string_id[pos]].lib[0];
+      game->current_hash ^= hash_bit[game->ko_pos][HASH_KO];
+    }
+  } else if (connection == 1) {
+    AddStone(game, pos, color, connect[0]);
+  } else {
+    ConnectString(game, pos, color, connection, connect);
+  }
 
-	// è”‚ğ1‚Â‚¾‚¯i‚ß‚é
-	game->moves++;
+  // ãƒãƒƒã‚·ãƒ¥å€¤ã®è¨˜éŒ²
+  if (game->moves < MAX_RECORDS) {
+    game->record[game->moves].hash = game->positional_hash;
+  }
+  
+  // æ‰‹æ•°ã‚’1ã¤ã ã‘é€²ã‚ã‚‹
+  game->moves++;
 }
 
 
 ////////////////
-//  Î‚ğ’u‚­  //
+//  çŸ³ã‚’ç½®ã  //
 ////////////////
 void
-PoPutStone(game_info_t *game, int pos, int color)
+PoPutStone( game_info_t *game, const int pos, const int color )
 {
-	int *string_id = game->string_id;
-	char *board = game->board;
-	string_t *string = game->string;
-	int other = FLIP_COLOR(color);
-	int connection = 0;
-	int connect[4] = { 0 };
-	int prisoner = 0;
-	int neighbor[4];
-	int i;
+  const int *string_id = game->string_id;
+  char *board = game->board;
+  string_t *string = game->string;
+  const int other = FLIP_COLOR(color);
+  int connection = 0;
+  int connect[4] = { 0 };
+  int prisoner = 0;
+  int neighbor[4];
 
-	// ‚±‚Ìè”Ô‚Åæ‚Á‚½Î‚ÌŒÂ”‚ğ0‚É
-	game->capture_num[color] = 0;
+  // ã“ã®æ‰‹ç•ªã§å–ã£ãŸçŸ³ã®å€‹æ•°ã‚’0ã«
+  game->capture_num[color] = 0;
 
-	// ’…è§ŒÀ‚ÌŒÀŠE‚ğ’´‚¦‚Ä‚¢‚È‚¯‚ê‚Î‹L˜^
-	if (game->moves < MAX_RECORDS) {
-		game->record[game->moves].color = color;
-		game->record[game->moves].pos = pos;
-	}
+  // ç€æ‰‹åˆ¶é™ã®é™ç•Œã‚’è¶…ãˆã¦ã„ãªã‘ã‚Œã°è¨˜éŒ²
+  if (game->moves < MAX_RECORDS) {
+    game->record[game->moves].color = color;
+    game->record[game->moves].pos = pos;
+  }
 
-	// ’…è‚ªƒpƒX‚È‚çè”‚ği‚ß‚ÄI—¹
-	if (pos == PASS) {
-		game->moves++;
-		return;
-	}
+  // ç€æ‰‹ãŒãƒ‘ã‚¹ãªã‚‰æ‰‹æ•°ã‚’é€²ã‚ã¦çµ‚äº†
+  if (pos == PASS) {
+    game->moves++;
+    return;
+  }
 
-	// Œé”Õ‚ÉÎ‚ğ’u‚­
-	board[pos] = (char)color;
+  // ç¢ç›¤ã«çŸ³ã‚’ç½®ã
+  board[pos] = (char)color;
 
-	// Œó•âğ‚©‚çœŠO
-	game->candidates[pos] = false;
+  // å€™è£œé…’ã‹ã‚‰é™¤å¤–
+  game->candidates[pos] = false;
 
-	// ’…è‰ÓŠ‚Ìíp“I“Á’¥‚ğ‘S‚ÄÁ‚·
-	game->tactical_features1[pos] = 0;
-	game->tactical_features2[pos] = 0;
+  // ç€æ‰‹ç®‡æ‰€ã®æˆ¦è¡“çš„ç‰¹å¾´ã‚’å…¨ã¦æ¶ˆã™
+  game->tactical_features1[pos] = 0;
+  game->tactical_features2[pos] = 0;
 
-	// ’…è‰ÓŠ‚ÌƒŒ[ƒg‚ğ0‚É–ß‚·
-	game->sum_rate[0] -= game->rate[0][pos];
-	game->sum_rate_row[0][board_y[pos]] -= game->rate[0][pos];
-	game->rate[0][pos] = 0;
-	game->sum_rate[1] -= game->rate[1][pos];
-	game->sum_rate_row[1][board_y[pos]] -= game->rate[1][pos];
-	game->rate[1][pos] = 0;
+  // ç€æ‰‹ç®‡æ‰€ã®ãƒ¬ãƒ¼ãƒˆã‚’0ã«æˆ»ã™
+  game->sum_rate[0] -= game->rate[0][pos];
+  game->sum_rate_row[0][board_y[pos]] -= game->rate[0][pos];
+  game->rate[0][pos] = 0;
+  game->sum_rate[1] -= game->rate[1][pos];
+  game->sum_rate_row[1][board_y[pos]] -= game->rate[1][pos];
+  game->rate[1][pos] = 0;
 
-	// ƒpƒ^[ƒ“‚ÌXV(MD2)  
-	UpdateMD2Stone(game->pat, color, pos);
+  // ãƒ‘ã‚¿ãƒ¼ãƒ³ã®æ›´æ–°(MD2)  
+  UpdateMD2Stone(game->pat, color, pos);
 
-	// ’…è‰ÓŠ‚Ìã‰º¶‰E‚ÌÀ•W‚Ì“±o
-	GetNeighbor4(neighbor, pos);
+  // ç€æ‰‹ç®‡æ‰€ã®ä¸Šä¸‹å·¦å³ã®åº§æ¨™ã®å°å‡º
+  GetNeighbor4(neighbor, pos);
 
-	// ’…è‰ÓŠ‚Ìã‰º¶‰E‚ÌŠm”F
-	// ©•ª‚Ì˜A‚ª‚ ‚ê‚Î, ‚»‚Ì˜A‚ÌŒÄ‹z“_‚ğ1‚ÂŒ¸‚ç‚µ, Ú‘±Œó•â‚É“ü‚ê‚é
-	// “G‚Ì˜A‚Å‚ ‚ê‚Î, ‚»‚Ì˜A‚ÌŒÄ‹z“_‚ğ1‚ÂŒ¸‚ç‚µ, ŒÄ‹z“_‚ª0‚É‚È‚Á‚½‚çæ‚èœ‚­  
-	for (i = 0; i < 4; i++) {
-		if (board[neighbor[i]] == color) {
-			PoRemoveLiberty(game, &string[string_id[neighbor[i]]], pos, color);
-			connect[connection++] = string_id[neighbor[i]];
-		}
-		else if (board[neighbor[i]] == other) {
-			PoRemoveLiberty(game, &string[string_id[neighbor[i]]], pos, color);
-			if (string[string_id[neighbor[i]]].libs == 0) {
-				prisoner += PoRemoveString(game, &string[string_id[neighbor[i]]], color);
-			}
-		}
-	}
+  // ç€æ‰‹ç®‡æ‰€ã®ä¸Šä¸‹å·¦å³ã®ç¢ºèª
+  // è‡ªåˆ†ã®é€£ãŒã‚ã‚Œã°, ãã®é€£ã®å‘¼å¸ç‚¹ã‚’1ã¤æ¸›ã‚‰ã—, æ¥ç¶šå€™è£œã«å…¥ã‚Œã‚‹
+  // æ•µã®é€£ã§ã‚ã‚Œã°, ãã®é€£ã®å‘¼å¸ç‚¹ã‚’1ã¤æ¸›ã‚‰ã—, å‘¼å¸ç‚¹ãŒ0ã«ãªã£ãŸã‚‰å–ã‚Šé™¤ã  
+  for (int i = 0; i < 4; i++) {
+    if (board[neighbor[i]] == color) {
+      PoRemoveLiberty(game, &string[string_id[neighbor[i]]], pos, color);
+      connect[connection++] = string_id[neighbor[i]];
+    } else if (board[neighbor[i]] == other) {
+      PoRemoveLiberty(game, &string[string_id[neighbor[i]]], pos, color);
+      if (string[string_id[neighbor[i]]].libs == 0) {
+	prisoner += PoRemoveString(game, &string[string_id[neighbor[i]]], color);
+      }
+    }
+  }
 
-	// ‘Å‚¿ã‚°‚½Î‚ğƒAƒQƒnƒ}‚É’Ç‰Á
-	game->prisoner[color] += prisoner;
+  // æ‰“ã¡ä¸Šã’ãŸçŸ³ã‚’ã‚¢ã‚²ãƒãƒã«è¿½åŠ 
+  game->prisoner[color] += prisoner;
 
-	// Ú‘±Œó•â‚ª‚È‚¯‚ê‚Î, V‚µ‚¢˜A‚ğì¬‚µ‚Ä, …‚©‚Ç‚¤‚©‚ÌŠm”F‚ğ‚·‚é
-	// Ú‘±Œó•â‚ª1‚Â‚È‚ç‚Î, ‚»‚Ì˜A‚ÉÎ‚ğ’Ç‰Á‚·‚é
-	// Ú‘±Œó•â‚ª2‚ÂˆÈã‚È‚ç‚Î, ˜A“¯m‚ğŒq‚¬‡‚í‚¹‚Ä, Î‚ğ’Ç‰Á‚·‚é  
-	if (connection == 0) {
-		MakeString(game, pos, color);
-		if (prisoner == 1 &&
-			string[string_id[pos]].libs == 1) {
-			game->ko_move = game->moves;
-			game->ko_pos = string[string_id[pos]].lib[0];
-		}
-	}
-	else if (connection == 1) {
-		AddStone(game, pos, color, connect[0]);
-	}
-	else {
-		ConnectString(game, pos, color, connection, connect);
-	}
+  // æ¥ç¶šå€™è£œãŒãªã‘ã‚Œã°, æ–°ã—ã„é€£ã‚’ä½œæˆã—ã¦, åŠ«ã‹ã©ã†ã‹ã®ç¢ºèªã‚’ã™ã‚‹
+  // æ¥ç¶šå€™è£œãŒ1ã¤ãªã‚‰ã°, ãã®é€£ã«çŸ³ã‚’è¿½åŠ ã™ã‚‹
+  // æ¥ç¶šå€™è£œãŒ2ã¤ä»¥ä¸Šãªã‚‰ã°, é€£åŒå£«ã‚’ç¹‹ãåˆã‚ã›ã¦, çŸ³ã‚’è¿½åŠ ã™ã‚‹  
+  if (connection == 0) {
+    MakeString(game, pos, color);
+    if (prisoner == 1 &&
+	string[string_id[pos]].libs == 1) {
+      game->ko_move = game->moves;
+      game->ko_pos = string[string_id[pos]].lib[0];
+    }
+  } else if (connection == 1) {
+    AddStone(game, pos, color, connect[0]);
+  } else {
+    ConnectString(game, pos, color, connection, connect);
+  }
 
-	// è”‚ği‚ß‚é
-	game->moves++;
+  // æ‰‹æ•°ã‚’é€²ã‚ã‚‹
+  game->moves++;
 }
 
 
 //////////////////////
-//  V‚µ‚¢˜A‚Ìì¬  //
+//  æ–°ã—ã„é€£ã®ä½œæˆ  //
 //////////////////////
 static void
-MakeString(game_info_t *game, int pos, int color)
+MakeString( game_info_t *game, const int pos, const int color )
 {
-	string_t *string = game->string;
-	string_t *new_string;
-	char *board = game->board;
-	int *string_id = game->string_id;
-	int id = 1;
-	int lib_add = 0;
-	int other = FLIP_COLOR(color);
-	int neighbor, neighbor4[4], i;
+  string_t *string = game->string;
+  string_t *new_string;
+  const char *board = game->board;
+  int *string_id = game->string_id;
+  int id = 1;
+  int lib_add = 0;
+  int other = FLIP_COLOR(color);
+  int neighbor, neighbor4[4], i;
 
-	// –¢g—p‚Ì˜A‚ÌƒCƒ“ƒfƒbƒNƒX‚ğŒ©‚Â‚¯‚é
-	while (string[id].flag) { id++; }
+  // æœªä½¿ç”¨ã®é€£ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’è¦‹ã¤ã‘ã‚‹
+  while (string[id].flag) { id++; }
 
-	// V‚µ‚­˜A‚Ìƒf[ƒ^‚ğŠi”[‚·‚é‰ÓŠ‚ğ•Û
-	new_string = &game->string[id];
+  // æ–°ã—ãé€£ã®ãƒ‡ãƒ¼ã‚¿ã‚’æ ¼ç´ã™ã‚‹ç®‡æ‰€ã‚’ä¿æŒ
+  new_string = &game->string[id];
 
-	// ˜A‚Ìƒf[ƒ^‚Ì‰Šú‰»
-	memset(new_string->lib, 0, sizeof(short) * STRING_LIB_MAX);
-	memset(new_string->neighbor, 0, sizeof(short) * MAX_NEIGHBOR);
-	new_string->lib[0] = LIBERTY_END;
-	new_string->neighbor[0] = NEIGHBOR_END;
-	new_string->libs = 0;
-	new_string->color = (char)color;
-	new_string->origin = pos;
-	new_string->size = 1;
-	new_string->neighbors = 0;
-	game->string_id[pos] = id;
-	game->string_next[pos] = STRING_END;
+  // é€£ã®ãƒ‡ãƒ¼ã‚¿ã®åˆæœŸåŒ–
+  fill_n(new_string->lib, STRING_LIB_MAX, 0);
+  fill_n(new_string->neighbor, MAX_NEIGHBOR, 0);
+  new_string->lib[0] = LIBERTY_END;
+  new_string->neighbor[0] = NEIGHBOR_END;
+  new_string->libs = 0;
+  new_string->color = (char)color;
+  new_string->origin = pos;
+  new_string->size = 1;
+  new_string->neighbors = 0;
+  game->string_id[pos] = id;
+  game->string_next[pos] = STRING_END;
 
-	// ã‰º¶‰E‚ÌÀ•W‚Ì“±o
-	GetNeighbor4(neighbor4, pos);
+  // ä¸Šä¸‹å·¦å³ã®åº§æ¨™ã®å°å‡º
+  GetNeighbor4(neighbor4, pos);
 
-	// V‚µ‚­ì¬‚µ‚½˜A‚Ìã‰º¶‰E‚ÌÀ•W‚ğŠm”F
-	// ‹ó“_‚È‚ç‚Î, ì¬‚µ‚½˜A‚ÉŒÄ‹z“_‚ğ’Ç‰Á‚·‚é
-	// “G‚Ì˜A‚È‚ç‚Î, —×Ú‚·‚é˜A‚ğ‚¨Œİ‚¢‚É’Ç‰Á‚·‚é
-	for (i = 0; i < 4; i++) {
-		if (board[neighbor4[i]] == S_EMPTY) {
-			lib_add = AddLiberty(new_string, neighbor4[i], lib_add);
-		}
-		else if (board[neighbor4[i]] == other) {
-			neighbor = string_id[neighbor4[i]];
-			AddNeighbor(&string[neighbor], id, 0);
-			AddNeighbor(&string[id], neighbor, 0);
-		}
-	}
+  // æ–°ã—ãä½œæˆã—ãŸé€£ã®ä¸Šä¸‹å·¦å³ã®åº§æ¨™ã‚’ç¢ºèª
+  // ç©ºç‚¹ãªã‚‰ã°, ä½œæˆã—ãŸé€£ã«å‘¼å¸ç‚¹ã‚’è¿½åŠ ã™ã‚‹
+  // æ•µã®é€£ãªã‚‰ã°, éš£æ¥ã™ã‚‹é€£ã‚’ãŠäº’ã„ã«è¿½åŠ ã™ã‚‹
+  for (i = 0; i < 4; i++) {
+    if (board[neighbor4[i]] == S_EMPTY) {
+      lib_add = AddLiberty(new_string, neighbor4[i], lib_add);
+    } else if (board[neighbor4[i]] == other) {
+      neighbor = string_id[neighbor4[i]];
+      AddNeighbor(&string[neighbor], id, 0);
+      AddNeighbor(&string[id], neighbor, 0);
+    }
+  }
 
-	// ˜A‚Ì‘¶İƒtƒ‰ƒO‚ğƒIƒ“‚É‚·‚é
-	new_string->flag = true;
+  // é€£ã®å­˜åœ¨ãƒ•ãƒ©ã‚°ã‚’ã‚ªãƒ³ã«ã™ã‚‹
+  new_string->flag = true;
 }
 
 
 ///////////////////////////
-//  ˜A‚ÉÎ‚ğ1‚Â’Ç‰Á‚·‚é  //
+//  é€£ã«çŸ³ã‚’1ã¤è¿½åŠ ã™ã‚‹  //
 ///////////////////////////
 static void
-AddStoneToString(game_info_t *game, string_t *string, int pos, int head)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^ 
-// string_t *string  : Î‚Ì’Ç‰Áæ‚Ì˜A
-// int pos         : ’Ç‰Á‚·‚éÎ‚ÌÀ•W
-// int head        : ‚‘¬ˆ—‚Ì‚½‚ß‚Ì•Ï”
+AddStoneToString( game_info_t *game, string_t *string, const int pos, const int head )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿ 
+// string_t *string  : çŸ³ã®è¿½åŠ å…ˆã®é€£
+// int pos         : è¿½åŠ ã™ã‚‹çŸ³ã®åº§æ¨™
+// int head        : é«˜é€Ÿå‡¦ç†ã®ãŸã‚ã®å¤‰æ•°
 {
-	int *string_next = game->string_next;
-	int str_pos;
+  int *string_next = game->string_next;
+  int str_pos;
 
-	if (pos == STRING_END) return;
+  if (pos == STRING_END) return;
 
-	// ’Ç‰Áæ‚Ì˜A‚Ìæ“ª‚Ì‘O‚È‚ç‚Îæ“ª‚É’Ç‰Á
-	// ‚»‚¤‚Å‚È‚¯‚ê‚Î‘}“üˆÊ’u‚ğ’T‚µo‚µ’Ç‰Á
-	if (string->origin > pos) {
-		string_next[pos] = string->origin;
-		string->origin = pos;
-	}
-	else {
-		if (head != 0) {
-			str_pos = head;
-		}
-		else {
-			str_pos = string->origin;
-		}
-		while (string_next[str_pos] < pos) {
-			str_pos = string_next[str_pos];
-		}
-		string_next[pos] = string_next[str_pos];
-		string_next[str_pos] = pos;
-	}
-	string->size++;
+  // è¿½åŠ å…ˆã®é€£ã®å…ˆé ­ã®å‰ãªã‚‰ã°å…ˆé ­ã«è¿½åŠ 
+  // ãã†ã§ãªã‘ã‚Œã°æŒ¿å…¥ä½ç½®ã‚’æ¢ã—å‡ºã—è¿½åŠ 
+  if (string->origin > pos) {
+    string_next[pos] = string->origin;
+    string->origin = pos;
+  } else {
+    if (head != 0) {
+      str_pos = head;
+    } else {
+      str_pos = string->origin;
+    }
+    while (string_next[str_pos] < pos){
+      str_pos = string_next[str_pos];
+    }
+    string_next[pos] = string_next[str_pos];
+    string_next[str_pos] = pos;
+  }
+  string->size++;
 }
 
 
 ////////////////////////
-//  ˜A‚ÉÎ‚ğ’Ç‰Á‚·‚é  //
+//  é€£ã«çŸ³ã‚’è¿½åŠ ã™ã‚‹  //
 ////////////////////////
 static void
-AddStone(game_info_t *game, int pos, int color, int id)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
-// int pos           : ’u‚¢‚½Î‚ÌÀ•W
-// int color         : ’u‚¢‚½Î‚ÌF
-// int id            : Î‚ğ’Ç‰Á‚·‚éæ‚Ì˜A‚ÌID
+AddStone( game_info_t *game, const int pos, const int color, const int id )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
+// int pos           : ç½®ã„ãŸçŸ³ã®åº§æ¨™
+// int color         : ç½®ã„ãŸçŸ³ã®è‰²
+// int id            : çŸ³ã‚’è¿½åŠ ã™ã‚‹å…ˆã®é€£ã®ID
 {
-	string_t *string = game->string;
-	string_t *add_str;
-	char *board = game->board;
-	int *string_id = game->string_id;
-	int lib_add = 0;
-	int other = FLIP_COLOR(color);
-	int neighbor, neighbor4[4], i;
+  string_t *string = game->string;
+  string_t *add_str;
+  char *board = game->board;
+  int *string_id = game->string_id;
+  int lib_add = 0;
+  int other = FLIP_COLOR(color);
+  int neighbor, neighbor4[4], i;
 
-	// ID‚ğXV
-	string_id[pos] = id;
+  // IDã‚’æ›´æ–°
+  string_id[pos] = id;
 
-	// ’Ç‰Áæ‚Ì˜A‚ğæ‚èo‚·
-	add_str = &string[id];
+  // è¿½åŠ å…ˆã®é€£ã‚’å–ã‚Šå‡ºã™
+  add_str = &string[id];
 
-	// Î‚ğ’Ç‰Á‚·‚é
-	AddStoneToString(game, add_str, pos, 0);
+  // çŸ³ã‚’è¿½åŠ ã™ã‚‹
+  AddStoneToString(game, add_str, pos, 0);
 
-	// ã‰º¶‰E‚ÌÀ•W‚Ì“±o
-	GetNeighbor4(neighbor4, pos);
+  // ä¸Šä¸‹å·¦å³ã®åº§æ¨™ã®å°å‡º
+  GetNeighbor4(neighbor4, pos);
 
-	// ‹ó“_‚È‚çŒÄ‹z“_‚ğ’Ç‰Á‚µ
-	// “G‚ÌÎ‚ª‚ ‚ê‚Î—×Ú‚·‚é“G˜A‚Ìî•ñ‚ğXV
-	for (i = 0; i < 4; i++) {
-		if (board[neighbor4[i]] == S_EMPTY) {
-			lib_add = AddLiberty(add_str, neighbor4[i], lib_add);
-		}
-		else if (board[neighbor4[i]] == other) {
-			neighbor = string_id[neighbor4[i]];
-			AddNeighbor(&string[neighbor], id, 0);
-			AddNeighbor(&string[id], neighbor, 0);
-		}
-	}
+  // ç©ºç‚¹ãªã‚‰å‘¼å¸ç‚¹ã‚’è¿½åŠ ã—
+  // æ•µã®çŸ³ãŒã‚ã‚Œã°éš£æ¥ã™ã‚‹æ•µé€£ã®æƒ…å ±ã‚’æ›´æ–°
+  for (i = 0; i < 4; i++) {
+    if (board[neighbor4[i]] == S_EMPTY) {
+      lib_add = AddLiberty(add_str, neighbor4[i], lib_add);
+    } else if (board[neighbor4[i]] == other) {
+      neighbor = string_id[neighbor4[i]];
+      AddNeighbor(&string[neighbor], id, 0);
+      AddNeighbor(&string[id], neighbor, 0);
+    }
+  }
 }
 
 
 //////////////////////////
-//  ˜A“¯m‚ÌŒ‹‡‚Ì”»’è  //
+//  é€£åŒå£«ã®çµåˆã®åˆ¤å®š  //
 //////////////////////////
 static void
-ConnectString(game_info_t *game, int pos, int color, int connection, int id[])
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
-// int pos           : ’u‚¢‚½Î‚ÌÀ•W
-// int color         : ’u‚¢‚½Î‚ÌF
-// int connection    : Ú‘±‚·‚é˜A‚ÌŒó•â‚ÌŒÂ”
-// int id[]          : Ú‘±‚·‚é˜A‚ÌŒó•â‚ÌID
+ConnectString( game_info_t *game, const int pos, const int color, const int connection, const int id[] )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
+// int pos           : ç½®ã„ãŸçŸ³ã®åº§æ¨™
+// int color         : ç½®ã„ãŸçŸ³ã®è‰²
+// int connection    : æ¥ç¶šã™ã‚‹é€£ã®å€™è£œã®å€‹æ•°
+// int id[]          : æ¥ç¶šã™ã‚‹é€£ã®å€™è£œã®ID
 {
-	int i, j, min = id[0];
-	string_t *string = game->string;
-	string_t *str[3];
-	int connections = 0;
-	bool flag = true;
+  int min = id[0];
+  string_t *string = game->string;
+  string_t *str[3];
+  int connections = 0;
+  bool flag = true;
 
-	// Ú‘±‚·‚é˜A‚ÌŒÂ”‚ğŒµ–§‚ÉŠm”F
-	for (i = 1; i < connection; i++) {
-		flag = true;
-		for (j = 0; j < i; j++) {
-			if (id[j] == id[i]) {
-				flag = false;
-				break;
-			}
-		}
-		if (flag) {
-			if (min > id[i]) {
-				str[connections] = &string[min];
-				min = id[i];
-			}
-			else {
-				str[connections] = &string[id[i]];
-			}
-			connections++;
-		}
-	}
+  // æ¥ç¶šã™ã‚‹é€£ã®å€‹æ•°ã‚’å³å¯†ã«ç¢ºèª
+  for (int i = 1; i < connection; i++) {
+    flag = true;
+    for (int j = 0; j < i; j++) {
+      if (id[j] == id[i]) {
+	flag = false;
+	break;
+      }
+    }
+    if (flag) {
+      if (min > id[i]) {
+	str[connections] = &string[min];
+	min = id[i];
+      } else {
+	str[connections] = &string[id[i]];
+      }
+      connections++;
+    }
+  }
 
-	// Î‚ğ’Ç‰Á
-	AddStone(game, pos, color, min);
+  // çŸ³ã‚’è¿½åŠ 
+  AddStone(game, pos, color, min);
 
-	// •¡”‚Ì˜A‚ªÚ‘±‚·‚é‚Æ‚«‚Ìˆ—
-	if (connections > 0) {
-		MergeString(game, &game->string[min], str, connections);
-	}
+  // è¤‡æ•°ã®é€£ãŒæ¥ç¶šã™ã‚‹ã¨ãã®å‡¦ç†
+  if (connections > 0) {
+    MergeString(game, &game->string[min], str, connections);
+  }
 }
 
 
 ////////////////
-//  ˜A‚ÌŒ‹‡  //
+//  é€£ã®çµåˆ  //
 ////////////////
 static void
-MergeString(game_info_t *game, string_t *dst, string_t *src[3], int n)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
-// string_t *dst     : ƒ}[ƒWæ‚Ì˜A
-// string_t *src[3]  : ƒ}[ƒWŒ³‚Ì˜A(Å‘å3‚Â)
-// int n             : ƒ}[ƒW‚·‚é˜A‚ÌŒÂ”
+MergeString( game_info_t *game, string_t *dst, string_t *src[3], const int n )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
+// string_t *dst     : ãƒãƒ¼ã‚¸å…ˆã®é€£
+// string_t *src[3]  : ãƒãƒ¼ã‚¸å…ƒã®é€£(æœ€å¤§3ã¤)
+// int n             : ãƒãƒ¼ã‚¸ã™ã‚‹é€£ã®å€‹æ•°
 {
-	int i, tmp, pos, prev, neighbor;
-	int *string_next = game->string_next;
-	int *string_id = game->string_id;
-	int id = string_id[dst->origin], rm_id;
-	string_t *string = game->string;
+  int tmp, pos, prev, neighbor;
+  int *string_next = game->string_next;
+  int *string_id = game->string_id;
+  int id = string_id[dst->origin], rm_id;
+  string_t *string = game->string;
 
-	for (i = 0; i < n; i++) {
-		// Ú‘±‚ÅÁ‚¦‚é˜A‚ÌID
-		rm_id = string_id[src[i]->origin];
+  for (int i = 0; i < n; i++) {
+    // æ¥ç¶šã§æ¶ˆãˆã‚‹é€£ã®ID
+    rm_id = string_id[src[i]->origin];
 
-		// ŒÄ‹z“_‚ğƒ}[ƒW
-		prev = 0;
-		pos = src[i]->lib[0];
-		while (pos != LIBERTY_END) {
-			prev = AddLiberty(dst, pos, prev);
-			pos = src[i]->lib[pos];
-		}
+    // å‘¼å¸ç‚¹ã‚’ãƒãƒ¼ã‚¸
+    prev = 0;
+    pos = src[i]->lib[0];
+    while (pos != LIBERTY_END) {
+      prev = AddLiberty(dst, pos, prev);
+      pos = src[i]->lib[pos];
+    }
 
-		// ˜A‚ÌID‚ğXV
-		prev = 0;
-		pos = src[i]->origin;
-		while (pos != STRING_END) {
-			string_id[pos] = id;
-			tmp = string_next[pos];
-			AddStoneToString(game, dst, pos, prev);
-			prev = pos;
-			pos = tmp;
-		}
+    // é€£ã®IDã‚’æ›´æ–°
+    prev = 0;
+    pos = src[i]->origin;
+    while (pos != STRING_END) {
+      string_id[pos] = id;
+      tmp = string_next[pos];
+      AddStoneToString(game, dst, pos, prev);
+      prev = pos;
+      pos = tmp;
+    }
 
-		// —×Ú‚·‚é“G˜A‚Ìî•ñ‚ğƒ}[ƒW
-		prev = 0;
-		neighbor = src[i]->neighbor[0];
-		while (neighbor != NEIGHBOR_END) {
-			RemoveNeighborString(&string[neighbor], rm_id);
-			AddNeighbor(dst, neighbor, prev);
-			AddNeighbor(&string[neighbor], id, prev);
-			prev = neighbor;
-			neighbor = src[i]->neighbor[neighbor];
-		}
+    // éš£æ¥ã™ã‚‹æ•µé€£ã®æƒ…å ±ã‚’ãƒãƒ¼ã‚¸
+    prev = 0;
+    neighbor = src[i]->neighbor[0];
+    while (neighbor != NEIGHBOR_END) {
+      RemoveNeighborString(&string[neighbor], rm_id);
+      AddNeighbor(dst, neighbor, prev);
+      AddNeighbor(&string[neighbor], id, prev);
+      prev = neighbor;
+      neighbor = src[i]->neighbor[neighbor];
+    }
 
-		// g—pÏ‚İƒtƒ‰ƒO‚ğƒIƒt
-		src[i]->flag = false;
-	}
+    // ä½¿ç”¨æ¸ˆã¿ãƒ•ãƒ©ã‚°ã‚’ã‚ªãƒ•
+    src[i]->flag = false;
+  }
 }
 
 
 ////////////////////
-//  ŒÄ‹z“_‚Ì’Ç‰Á  //
+//  å‘¼å¸ç‚¹ã®è¿½åŠ   //
 ////////////////////
 static int
-AddLiberty(string_t *string, int pos, int head)
-// string_t *string : ŒÄ‹z“_‚ğ’Ç‰Á‚·‚é‘ÎÛ‚Ì˜A
-// int pos        : ’Ç‰Á‚·‚éŒÄ‹z“_‚ÌÀ•W
-// int head       : ’Tõ‘ÎÛ‚Ìæ“ª‚ÌƒCƒ“ƒfƒbƒNƒX
+AddLiberty( string_t *string, const int pos, const int head )
+// string_t *string : å‘¼å¸ç‚¹ã‚’è¿½åŠ ã™ã‚‹å¯¾è±¡ã®é€£
+// int pos        : è¿½åŠ ã™ã‚‹å‘¼å¸ç‚¹ã®åº§æ¨™
+// int head       : æ¢ç´¢å¯¾è±¡ã®å…ˆé ­ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 {
-	int lib;
+  int lib;
 
-	// Šù‚É’Ç‰Á‚³‚ê‚Ä‚¢‚éê‡‚Í‰½‚à‚µ‚È‚¢
-	if (string->lib[pos] != 0) return pos;
+  // æ—¢ã«è¿½åŠ ã•ã‚Œã¦ã„ã‚‹å ´åˆã¯ä½•ã‚‚ã—ãªã„
+  if (string->lib[pos] != 0) return pos;
 
-	// ’Tõ‘ÎÛ‚Ìæ“ª‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ‘ã“ü
-	lib = head;
+  // æ¢ç´¢å¯¾è±¡ã®å…ˆé ­ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ä»£å…¥
+  lib = head;
 
-	// ’Ç‰Á‚·‚éêŠ‚ğŒ©‚Â‚¯‚é‚Ü‚Åi‚ß‚é
-	while (string->lib[lib] < pos) {
-		lib = string->lib[lib];
-	}
+  // è¿½åŠ ã™ã‚‹å ´æ‰€ã‚’è¦‹ã¤ã‘ã‚‹ã¾ã§é€²ã‚ã‚‹
+  while (string->lib[lib] < pos) {
+    lib = string->lib[lib];
+  }
 
-	// ŒÄ‹z“_‚ÌÀ•W‚ğ’Ç‰Á‚·‚é
-	string->lib[pos] = string->lib[lib];
-	string->lib[lib] = (short)pos;
+  // å‘¼å¸ç‚¹ã®åº§æ¨™ã‚’è¿½åŠ ã™ã‚‹
+  string->lib[pos] = string->lib[lib];
+  string->lib[lib] = (short)pos;
 
-	// ŒÄ‹z“_‚Ì”‚ğ1‚Â‘‚â‚·
-	string->libs++;
+  // å‘¼å¸ç‚¹ã®æ•°ã‚’1ã¤å¢—ã‚„ã™
+  string->libs++;
 
-	// ’Ç‰Á‚µ‚½ŒÄ‹z“_‚ÌÀ•W‚ğ•Ô‚·
-	return pos;
+  // è¿½åŠ ã—ãŸå‘¼å¸ç‚¹ã®åº§æ¨™ã‚’è¿”ã™
+  return pos;
 }
 
 
 ////////////////////
-//  ŒÄ‹z“_‚Ìœ‹  //
+//  å‘¼å¸ç‚¹ã®é™¤å»  //
 ////////////////////
 static void
-RemoveLiberty(game_info_t *game, string_t *string, int pos)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
-// string_t *string  : ŒÄ‹z“_‚ğæ‚èœ‚­‘ÎÛ‚Ì˜A
-// int pos         : æ‚èœ‚©‚ê‚éŒÄ‹z“_
+RemoveLiberty( game_info_t *game, string_t *string, const int pos )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
+// string_t *string  : å‘¼å¸ç‚¹ã‚’å–ã‚Šé™¤ãå¯¾è±¡ã®é€£
+// int pos         : å–ã‚Šé™¤ã‹ã‚Œã‚‹å‘¼å¸ç‚¹
 {
-	int lib = 0;
+  int lib = 0;
 
-	// Šù‚Éæ‚èœ‚©‚ê‚Ä‚¢‚éê‡‚Í‰½‚à‚µ‚È‚¢
-	if (string->lib[pos] == 0) return;
+  // æ—¢ã«å–ã‚Šé™¤ã‹ã‚Œã¦ã„ã‚‹å ´åˆã¯ä½•ã‚‚ã—ãªã„
+  if (string->lib[pos] == 0) return;
 
-	// æ‚èœ‚­ŒÄ‹z“_‚ÌÀ•W‚ğŒ©‚Â‚¯‚é‚Ü‚Åi‚ß‚é
-	while (string->lib[lib] != pos) {
-		lib = string->lib[lib];
-	}
+  // å–ã‚Šé™¤ãå‘¼å¸ç‚¹ã®åº§æ¨™ã‚’è¦‹ã¤ã‘ã‚‹ã¾ã§é€²ã‚ã‚‹
+  while (string->lib[lib] != pos) {
+    lib = string->lib[lib];
+  }
 
-	// ŒÄ‹z“_‚ÌÀ•W‚Ìî•ñ‚ğæ‚èœ‚­
-	string->lib[lib] = string->lib[string->lib[lib]];
-	string->lib[pos] = (short)0;
+  // å‘¼å¸ç‚¹ã®åº§æ¨™ã®æƒ…å ±ã‚’å–ã‚Šé™¤ã
+  string->lib[lib] = string->lib[string->lib[lib]];
+  string->lib[pos] = (short)0;
 
-	// ˜A‚ÌŒÄ‹z“_‚Ì”‚ğ1‚ÂŒ¸‚ç‚·
-	string->libs--;
+  // é€£ã®å‘¼å¸ç‚¹ã®æ•°ã‚’1ã¤æ¸›ã‚‰ã™
+  string->libs--;
 
-	// ŒÄ‹z“_‚ª1‚Â‚È‚ç‚Î, ‚»‚Ì˜A‚ÌŒÄ‹z“_‚ğŒó•âè‚É’Ç‰Á
-	if (string->libs == 1) {
-		game->candidates[string->lib[0]] = true;
-	}
+  // å‘¼å¸ç‚¹ãŒ1ã¤ãªã‚‰ã°, ãã®é€£ã®å‘¼å¸ç‚¹ã‚’å€™è£œæ‰‹ã«è¿½åŠ 
+  if (string->libs == 1) {
+    game->candidates[string->lib[0]] = true;
+  }
 }
 
 
 //////////////////////
-//  ŒÄ‹z“_‚Ìœ‹    //
-// (ƒvƒŒƒCƒAƒEƒg—p) //
+//  å‘¼å¸ç‚¹ã®é™¤å»    //
+// (ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆç”¨) //
 //////////////////////
 static void
-PoRemoveLiberty(game_info_t *game, string_t *string, int pos, int color)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
-// string_t *string  : ŒÄ‹z“_‚ğæ‚èœ‚­‘ÎÛ‚Ì˜A
-// int pos         : æ‚èœ‚©‚ê‚éŒÄ‹z“_
-// int color       : ‚»‚Ìè”Ô‚ÌF
+PoRemoveLiberty( game_info_t *game, string_t *string, const int pos, const int color )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
+// string_t *string  : å‘¼å¸ç‚¹ã‚’å–ã‚Šé™¤ãå¯¾è±¡ã®é€£
+// int pos         : å–ã‚Šé™¤ã‹ã‚Œã‚‹å‘¼å¸ç‚¹
+// int color       : ãã®æ‰‹ç•ªã®è‰²
 {
-	int lib = 0;
+  int lib = 0;
 
-	// Šù‚Éæ‚èœ‚©‚ê‚Ä‚¢‚éê‡‚Í‰½‚à‚µ‚È‚¢
-	if (string->lib[pos] == 0) return;
+  // æ—¢ã«å–ã‚Šé™¤ã‹ã‚Œã¦ã„ã‚‹å ´åˆã¯ä½•ã‚‚ã—ãªã„
+  if (string->lib[pos] == 0) return;
 
-	// æ‚èœ‚­ŒÄ‹z“_‚ÌÀ•W‚ğŒ©‚Â‚¯‚é‚Ü‚Åi‚ß‚é
-	while (string->lib[lib] != pos) {
-		lib = string->lib[lib];
-	}
+  // å–ã‚Šé™¤ãå‘¼å¸ç‚¹ã®åº§æ¨™ã‚’è¦‹ã¤ã‘ã‚‹ã¾ã§é€²ã‚ã‚‹
+  while (string->lib[lib] != pos) {
+    lib = string->lib[lib];
+  }
 
-	// ŒÄ‹z“_‚ÌÀ•W‚Ìî•ñ‚ğæ‚èœ‚­
-	string->lib[lib] = string->lib[string->lib[lib]];
-	string->lib[pos] = 0;
+  // å‘¼å¸ç‚¹ã®åº§æ¨™ã®æƒ…å ±ã‚’å–ã‚Šé™¤ã
+  string->lib[lib] = string->lib[string->lib[lib]];
+  string->lib[pos] = 0;
 
-	// ŒÄ‹z“_‚Ì”‚ğ1‚ÂŒ¸‚ç‚·
-	string->libs--;
+  // å‘¼å¸ç‚¹ã®æ•°ã‚’1ã¤æ¸›ã‚‰ã™
+  string->libs--;
 
-	// ˜A‚ÌŒÄ‹z“_‚Ì”‚ğŠm”F
-	// ŒÄ‹z“_‚ª1‚Â‚È‚ç‚Î, ‚»‚ÌŒÄ‹z“_‚ğŒó•âè‚É–ß‚µ‚Ä, ƒŒ[ƒg‚ÌXV‘ÎÛ‚É‰Á‚¦‚é
-	// ŒÄ‹z“_‚ª2‚Â‚È‚ç‚Î, ƒŒ[ƒg‚ÌXV‘ÎÛ‚É‰Á‚¦‚é
-	if (string->libs == 1) {
-		game->candidates[string->lib[0]] = true;
-		game->update_pos[color][game->update_num[color]++] = string->lib[0];
-	}
+  // é€£ã®å‘¼å¸ç‚¹ã®æ•°ã‚’ç¢ºèª
+  // å‘¼å¸ç‚¹ãŒ1ã¤ãªã‚‰ã°, ãã®å‘¼å¸ç‚¹ã‚’å€™è£œæ‰‹ã«æˆ»ã—ã¦, ãƒ¬ãƒ¼ãƒˆã®æ›´æ–°å¯¾è±¡ã«åŠ ãˆã‚‹
+  // å‘¼å¸ç‚¹ãŒ2ã¤ãªã‚‰ã°, ãƒ¬ãƒ¼ãƒˆã®æ›´æ–°å¯¾è±¡ã«åŠ ãˆã‚‹
+  if (string->libs == 1) {
+    game->candidates[string->lib[0]] = true;
+    game->update_pos[color][game->update_num[color]++] = string->lib[0];
+    game->seki[string->lib[0]] = false;
+  }
 }
 
 
 ////////////////
-//  ˜A‚Ìœ‹  //
+//  é€£ã®é™¤å»  //
 ////////////////
 static int
-RemoveString(game_info_t *game, string_t *string)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
-// string_t *string  : æ‚èœ‚­‘ÎÛ‚Ì˜A
+RemoveString( game_info_t *game, string_t *string )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
+// string_t *string  : å–ã‚Šé™¤ãå¯¾è±¡ã®é€£
 {
-	string_t *str = game->string;
-	int *string_next = game->string_next;
-	int *string_id = game->string_id;
-	int pos = string->origin, next;
-	char *board = game->board;
-	bool *candidates = game->candidates;
-	int neighbor, rm_id = string_id[string->origin];
-	int removed_color = board[pos];
+  string_t *str = game->string;
+  int *string_next = game->string_next;
+  int *string_id = game->string_id;
+  int pos = string->origin, next;
+  char *board = game->board;
+  bool *candidates = game->candidates;
+  int neighbor, rm_id = string_id[string->origin];
+  int removed_color = board[pos];
 
-	do {
-		// ‹ó“_‚É–ß‚·
-		board[pos] = S_EMPTY;
+  do {
+    // ç©ºç‚¹ã«æˆ»ã™
+    board[pos] = S_EMPTY;
 
-		// Œó•âè‚É’Ç‰Á‚·‚é
-		candidates[pos] = true;
+    // å€™è£œæ‰‹ã«è¿½åŠ ã™ã‚‹
+    candidates[pos] = true;
 
-		// ƒpƒ^[ƒ“‚ÌXV
-		UpdatePatternEmpty(game->pat, pos);
+    // ãƒ‘ã‚¿ãƒ¼ãƒ³ã®æ›´æ–°
+    UpdatePatternEmpty(game->pat, pos);
 
-		game->current_hash ^= hash_bit[pos][removed_color];
+    game->current_hash ^= hash_bit[pos][removed_color];
+    game->positional_hash ^= hash_bit[pos][removed_color];
 
-		// ã‰º¶‰E‚ğŠm”F‚·‚é
-		// —×Ú‚·‚é˜A‚ª‚ ‚ê‚ÎŒÄ‹z“_‚ğ’Ç‰Á‚·‚é
-		if (str[string_id[NORTH(pos)]].flag) AddLiberty(&str[string_id[NORTH(pos)]], pos, 0);
-		if (str[string_id[WEST(pos)]].flag) AddLiberty(&str[string_id[WEST(pos)]], pos, 0);
-		if (str[string_id[EAST(pos)]].flag) AddLiberty(&str[string_id[EAST(pos)]], pos, 0);
-		if (str[string_id[SOUTH(pos)]].flag) AddLiberty(&str[string_id[SOUTH(pos)]], pos, 0);
+    // ä¸Šä¸‹å·¦å³ã‚’ç¢ºèªã™ã‚‹
+    // éš£æ¥ã™ã‚‹é€£ãŒã‚ã‚Œã°å‘¼å¸ç‚¹ã‚’è¿½åŠ ã™ã‚‹
+    if (str[string_id[NORTH(pos)]].flag) AddLiberty(&str[string_id[NORTH(pos)]], pos, 0);
+    if (str[string_id[ WEST(pos)]].flag) AddLiberty(&str[string_id[ WEST(pos)]], pos, 0);
+    if (str[string_id[ EAST(pos)]].flag) AddLiberty(&str[string_id[ EAST(pos)]], pos, 0);
+    if (str[string_id[SOUTH(pos)]].flag) AddLiberty(&str[string_id[SOUTH(pos)]], pos, 0);
 
-		// ˜A‚ğ\¬‚·‚éŸ‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-		next = string_next[pos];
+    // é€£ã‚’æ§‹æˆã™ã‚‹æ¬¡ã®çŸ³ã®åº§æ¨™ã‚’è¨˜éŒ²
+    next = string_next[pos];
 
-		// ˜A‚Ì\¬—v‘f‚©‚çæ‚èœ‚«, 
-		// Î‚ğæ‚èœ‚¢‚½‰ÓŠ‚Ì˜AID‚ğŒ³‚É–ß‚·
-		string_next[pos] = 0;
-		string_id[pos] = 0;
+    // é€£ã®æ§‹æˆè¦ç´ ã‹ã‚‰å–ã‚Šé™¤ã, 
+    // çŸ³ã‚’å–ã‚Šé™¤ã„ãŸç®‡æ‰€ã®é€£IDã‚’å…ƒã«æˆ»ã™
+    string_next[pos] = 0;
+    string_id[pos] = 0;
 
-		// ˜A‚ğ\¬‚·‚éŸ‚ÌÎ‚ÌÀ•W‚ÉˆÚ“®
-		pos = next;
-	} while (pos != STRING_END);
+    // é€£ã‚’æ§‹æˆã™ã‚‹æ¬¡ã®çŸ³ã®åº§æ¨™ã«ç§»å‹•
+    pos = next;
+  } while (pos != STRING_END);
 
-	// æ‚èœ‚¢‚½˜A‚É—×Ú‚·‚é˜A‚©‚ç—×Úî•ñ‚ğæ‚èœ‚­
-	neighbor = string->neighbor[0];
-	while (neighbor != NEIGHBOR_END) {
-		RemoveNeighborString(&str[neighbor], rm_id);
-		neighbor = string->neighbor[neighbor];
-	}
+  // å–ã‚Šé™¤ã„ãŸé€£ã«éš£æ¥ã™ã‚‹é€£ã‹ã‚‰éš£æ¥æƒ…å ±ã‚’å–ã‚Šé™¤ã
+  neighbor = string->neighbor[0];
+  while (neighbor != NEIGHBOR_END) {
+    RemoveNeighborString(&str[neighbor], rm_id);
+    neighbor = string->neighbor[neighbor];
+  }
 
-	// ˜A‚Ì‘¶İƒtƒ‰ƒO‚ğƒIƒt
-	string->flag = false;
+  // é€£ã®å­˜åœ¨ãƒ•ãƒ©ã‚°ã‚’ã‚ªãƒ•
+  string->flag = false;
 
-	// ‘Å‚¿ã‚°‚½Î‚Ì”‚ğ•Ô‚·
-	return string->size;
+  // æ‰“ã¡ä¸Šã’ãŸçŸ³ã®æ•°ã‚’è¿”ã™
+  return string->size;
 }
 
 
 ////////////////
-//  ˜A‚Ìœ‹  //
+//  é€£ã®é™¤å»  //
 ////////////////
 static int
-PoRemoveString(game_info_t *game, string_t *string, int color)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
-// string_t *string  : æ‚èœ‚­‘ÎÛ‚Ì˜A
-// int color       : è”Ô‚ÌF(˜A‚ğ\¬‚·‚éF‚Æ‚Íˆá‚¤F)
+PoRemoveString( game_info_t *game, string_t *string, const int color )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
+// string_t *string  : å–ã‚Šé™¤ãå¯¾è±¡ã®é€£
+// int color       : æ‰‹ç•ªã®è‰²(é€£ã‚’æ§‹æˆã™ã‚‹è‰²ã¨ã¯é•ã†è‰²)
 {
-	string_t *str = game->string;
-	int *string_next = game->string_next;
-	int *string_id = game->string_id;
-	int pos = string->origin, next;
-	char *board = game->board;
-	bool *candidates = game->candidates;
-	int neighbor, rm_id = string_id[string->origin];
-	int *capture_pos = game->capture_pos[color];
-	int *capture_num = &game->capture_num[color];
-	int *update_pos = game->update_pos[color];
-	int *update_num = &game->update_num[color];
-	int lib;
+  string_t *str = game->string;
+  int *string_next = game->string_next;
+  int *string_id = game->string_id;
+  int pos = string->origin, next;
+  char *board = game->board;
+  bool *candidates = game->candidates;
+  int neighbor, rm_id = string_id[string->origin];
+  int *capture_pos = game->capture_pos[color];
+  int *capture_num = &game->capture_num[color];
+  int *update_pos = game->update_pos[color];
+  int *update_num = &game->update_num[color];
+  int lib;
+  
+  // éš£æ¥ã™ã‚‹é€£ã®å‘¼å¸ç‚¹ã‚’æ›´æ–°ã®å¯¾è±¡ã«åŠ ãˆã‚‹
+  neighbor = string->neighbor[0];
+  while (neighbor != NEIGHBOR_END) {
+    if (str[neighbor].libs < 3) {
+      lib = str[neighbor].lib[0];
+      while (lib != LIBERTY_END) {
+	update_pos[(*update_num)++] = lib;
+	game->seki[lib] = false;
+	lib = str[neighbor].lib[lib];
+      }
+    }
+    neighbor = string->neighbor[neighbor];
+  }
+  
+  do {
+    // ç©ºç‚¹ã«æˆ»ã™
+    board[pos] = S_EMPTY;
+    // å€™è£œæ‰‹ã«è¿½åŠ ã™ã‚‹
+    candidates[pos] = true;
 
-	// —×Ú‚·‚é˜A‚ÌŒÄ‹z“_‚ğXV‚Ì‘ÎÛ‚É‰Á‚¦‚é
-	neighbor = string->neighbor[0];
-	while (neighbor != NEIGHBOR_END) {
-		if (str[neighbor].libs < 3) {
-			lib = str[neighbor].lib[0];
-			while (lib != LIBERTY_END) {
-				update_pos[(*update_num)++] = lib;
-				lib = str[neighbor].lib[lib];
-			}
-		}
-		neighbor = string->neighbor[neighbor];
-	}
+    // ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚°æ›´æ–°å¯¾è±¡ã«è¿½åŠ 
+    capture_pos[(*capture_num)++] = pos;
 
-	do {
-		// ‹ó“_‚É–ß‚·
-		board[pos] = S_EMPTY;
-		// Œó•âè‚É’Ç‰Á‚·‚é
-		candidates[pos] = true;
+    // 3x3ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®æ›´æ–°
+    UpdateMD2Empty(game->pat, pos);
+    
+    // ä¸Šä¸‹å·¦å³ã‚’ç¢ºèªã™ã‚‹
+    // éš£æ¥ã™ã‚‹é€£ãŒã‚ã‚Œã°å‘¼å¸ç‚¹ã‚’è¿½åŠ ã™ã‚‹
+    if (str[string_id[NORTH(pos)]].flag) AddLiberty(&str[string_id[NORTH(pos)]], pos, 0);
+    if (str[string_id[ WEST(pos)]].flag) AddLiberty(&str[string_id[ WEST(pos)]], pos, 0);
+    if (str[string_id[ EAST(pos)]].flag) AddLiberty(&str[string_id[ EAST(pos)]], pos, 0);
+    if (str[string_id[SOUTH(pos)]].flag) AddLiberty(&str[string_id[SOUTH(pos)]], pos, 0);
 
-		// ƒŒ[ƒeƒBƒ“ƒOXV‘ÎÛ‚É’Ç‰Á
-		capture_pos[(*capture_num)++] = pos;
+    // é€£ã‚’æ§‹æˆã™ã‚‹æ¬¡ã®çŸ³ã®åº§æ¨™ã‚’è¨˜éŒ²
+    next = string_next[pos];
 
-		// 3x3‚Ìƒpƒ^[ƒ“‚ÌXV
-		UpdateMD2Empty(game->pat, pos);
+    // é€£ã®æ§‹æˆè¦ç´ ã‹ã‚‰å–ã‚Šé™¤ã, 
+    // çŸ³ã‚’å–ã‚Šé™¤ã„ãŸç®‡æ‰€ã®é€£IDã‚’å…ƒã«æˆ»ã™
+    string_next[pos] = 0;
+    string_id[pos] = 0;
 
-		// ã‰º¶‰E‚ğŠm”F‚·‚é
-		// —×Ú‚·‚é˜A‚ª‚ ‚ê‚ÎŒÄ‹z“_‚ğ’Ç‰Á‚·‚é
-		if (str[string_id[NORTH(pos)]].flag) AddLiberty(&str[string_id[NORTH(pos)]], pos, 0);
-		if (str[string_id[WEST(pos)]].flag) AddLiberty(&str[string_id[WEST(pos)]], pos, 0);
-		if (str[string_id[EAST(pos)]].flag) AddLiberty(&str[string_id[EAST(pos)]], pos, 0);
-		if (str[string_id[SOUTH(pos)]].flag) AddLiberty(&str[string_id[SOUTH(pos)]], pos, 0);
+    // é€£ã‚’æ§‹æˆã™ã‚‹æ¬¡ã®çŸ³ã¸ç§»å‹•
+    pos = next;
+  } while (pos != STRING_END);
 
-		// ˜A‚ğ\¬‚·‚éŸ‚ÌÎ‚ÌÀ•W‚ğ‹L˜^
-		next = string_next[pos];
+  // å–ã‚Šé™¤ã„ãŸé€£ã«éš£æ¥ã™ã‚‹é€£ã‹ã‚‰éš£æ¥æƒ…å ±ã‚’å–ã‚Šé™¤ã
+  neighbor = string->neighbor[0];
+  while (neighbor != NEIGHBOR_END) {
+    RemoveNeighborString(&str[neighbor], rm_id);
+    neighbor = string->neighbor[neighbor];
+  }
 
-		// ˜A‚Ì\¬—v‘f‚©‚çæ‚èœ‚«, 
-		// Î‚ğæ‚èœ‚¢‚½‰ÓŠ‚Ì˜AID‚ğŒ³‚É–ß‚·
-		string_next[pos] = 0;
-		string_id[pos] = 0;
+  // é€£ã®å­˜åœ¨ãƒ•ãƒ©ã‚°ã‚’ã‚ªãƒ•
+  string->flag = false;
 
-		// ˜A‚ğ\¬‚·‚éŸ‚ÌÎ‚ÖˆÚ“®
-		pos = next;
-	} while (pos != STRING_END);
-
-	// æ‚èœ‚¢‚½˜A‚É—×Ú‚·‚é˜A‚©‚ç—×Úî•ñ‚ğæ‚èœ‚­
-	neighbor = string->neighbor[0];
-	while (neighbor != NEIGHBOR_END) {
-		RemoveNeighborString(&str[neighbor], rm_id);
-		neighbor = string->neighbor[neighbor];
-	}
-
-	// ˜A‚Ì‘¶İƒtƒ‰ƒO‚ğƒIƒt
-	string->flag = false;
-
-	// ‘Å‚¿ã‚°‚½Î‚ÌŒÂ”‚ğ•Ô‚·
-	return string->size;
+  // æ‰“ã¡ä¸Šã’ãŸçŸ³ã®å€‹æ•°ã‚’è¿”ã™
+  return string->size;
 }
 
 
 ////////////////////////////////////
-//  —×Ú‚·‚é˜AID‚Ì’Ç‰Á(d•¡Šm”F)  //
+//  éš£æ¥ã™ã‚‹é€£IDã®è¿½åŠ (é‡è¤‡ç¢ºèª)  //
 ////////////////////////////////////
 static void
-AddNeighbor(string_t *string, int id, int head)
-// string_t *string : —×Úî•ñ‚ğ’Ç‰Á‚·‚é˜A
-// int id         : ’Ç‰Á‚³‚ê‚é˜AID
-// int head       : ’Tõ‘ÎÛ‚Ìæ“ª‚ÌƒCƒ“ƒfƒbƒNƒX
+AddNeighbor( string_t *string, const int id, const int head )
+// string_t *string : éš£æ¥æƒ…å ±ã‚’è¿½åŠ ã™ã‚‹é€£
+// int id         : è¿½åŠ ã•ã‚Œã‚‹é€£ID
+// int head       : æ¢ç´¢å¯¾è±¡ã®å…ˆé ­ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 {
-	int neighbor = 0;
+  int neighbor = 0;
 
-	// Šù‚É’Ç‰Á‚³‚ê‚Ä‚¢‚éê‡‚Í‰½‚à‚µ‚È‚¢
-	if (string->neighbor[id] != 0) return;
+  // æ—¢ã«è¿½åŠ ã•ã‚Œã¦ã„ã‚‹å ´åˆã¯ä½•ã‚‚ã—ãªã„
+  if (string->neighbor[id] != 0) return;
 
-	// ’Tõ‘ÎÛ‚Ìæ“ª‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ‘ã“ü
-	neighbor = head;
+  // æ¢ç´¢å¯¾è±¡ã®å…ˆé ­ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ä»£å…¥
+  neighbor = head;
 
-	// ’Ç‰ÁêŠ‚ğŒ©‚Â‚¯‚é‚Ü‚Åi‚ß‚é
-	while (string->neighbor[neighbor] < id) {
-		neighbor = string->neighbor[neighbor];
-	}
+  // è¿½åŠ å ´æ‰€ã‚’è¦‹ã¤ã‘ã‚‹ã¾ã§é€²ã‚ã‚‹
+  while (string->neighbor[neighbor] < id) {
+    neighbor = string->neighbor[neighbor];
+  }
 
-	// —×Ú‚·‚é˜AID‚ğ’Ç‰Á‚·‚é
-	string->neighbor[id] = string->neighbor[neighbor];
-	string->neighbor[neighbor] = (short)id;
+  // éš£æ¥ã™ã‚‹é€£IDã‚’è¿½åŠ ã™ã‚‹
+  string->neighbor[id] = string->neighbor[neighbor];
+  string->neighbor[neighbor] = (short)id;
 
-	// —×Ú‚·‚é˜A‚Ì”‚ğ1‚Â‘‚â‚·
-	string->neighbors++;
+  // éš£æ¥ã™ã‚‹é€£ã®æ•°ã‚’1ã¤å¢—ã‚„ã™
+  string->neighbors++;
 }
 
 
 //////////////////////////
-//  —×Ú‚·‚é˜AID‚Ìœ‹  //
+//  éš£æ¥ã™ã‚‹é€£IDã®é™¤å»  //
 //////////////////////////
 static void
-RemoveNeighborString(string_t *string, int id)
-// string_t *string : —×Ú‚·‚é˜A‚ÌID‚ğæ‚èœ‚­‘ÎÛ‚Ì˜A
-// int id         : æ‚èœ‚­˜A‚ÌID
+RemoveNeighborString( string_t *string, const int id )
+// string_t *string : éš£æ¥ã™ã‚‹é€£ã®IDã‚’å–ã‚Šé™¤ãå¯¾è±¡ã®é€£
+// int id         : å–ã‚Šé™¤ãé€£ã®ID
 {
-	int neighbor = 0;
+  int neighbor = 0;
 
-	// Šù‚ÉœŠO‚³‚ê‚Ä‚¢‚ê‚Î‰½‚à‚µ‚È‚¢
-	if (string->neighbor[id] == 0) return;
+  // æ—¢ã«é™¤å¤–ã•ã‚Œã¦ã„ã‚Œã°ä½•ã‚‚ã—ãªã„
+  if (string->neighbor[id] == 0) return;
 
-	// æ‚èœ‚­—×Ú‚·‚é˜AID‚ğŒ©‚Â‚¯‚é‚Ü‚Åi‚ß‚é
-	while (string->neighbor[neighbor] != id) {
-		neighbor = string->neighbor[neighbor];
-	}
+  // å–ã‚Šé™¤ãéš£æ¥ã™ã‚‹é€£IDã‚’è¦‹ã¤ã‘ã‚‹ã¾ã§é€²ã‚ã‚‹
+  while (string->neighbor[neighbor] != id) {
+    neighbor = string->neighbor[neighbor];
+  }
 
-	// —×Ú‚·‚é˜AID‚ğæ‚èœ‚­
-	string->neighbor[neighbor] = string->neighbor[string->neighbor[neighbor]];
-	string->neighbor[id] = 0;
+  // éš£æ¥ã™ã‚‹é€£IDã‚’å–ã‚Šé™¤ã
+  string->neighbor[neighbor] = string->neighbor[string->neighbor[neighbor]];
+  string->neighbor[id] = 0;
 
-	// —×Ú‚·‚é˜A‚Ì”‚ğ1‚ÂŒ¸‚ç‚·
-	string->neighbors--;
+  // éš£æ¥ã™ã‚‹é€£ã®æ•°ã‚’1ã¤æ¸›ã‚‰ã™
+  string->neighbors--;
 }
 
 
 ///////////////////////////
-//  ‹÷‚Ìƒ}ƒKƒŠl–Ú‚ÌŠm”F  //
+//  éš…ã®ãƒã‚¬ãƒªå››ç›®ã®ç¢ºèª  //
 ///////////////////////////
-void
-CheckBentFourInTheCorner(game_info_t *game)
+static void
+CheckBentFourInTheCorner( game_info_t *game )
 {
-	char *board = game->board;
-	string_t *string = game->string;
-	int *string_id = game->string_id;
-	int *string_next = game->string_next;
-	int pos;
-	int i;
-	int id;
-	int neighbor;
-	int color;
-	int lib1, lib2;
-	int neighbor_lib1, neighbor_lib2;
+  char *board = game->board;
+  const string_t *string = game->string;
+  const int *string_id = game->string_id;
+  const int *string_next = game->string_next;
+  int pos;
+  int i;
+  int id;
+  int neighbor;
+  int color;
+  int lib1, lib2;
+  int neighbor_lib1, neighbor_lib2;
 
-	// l‹÷‚É‚Â‚¢‚Ä‹÷‚Ìƒ}ƒKƒŠl–Ú‚ª‘¶İ‚·‚é‚©Šm”F‚µ
-	// ‘¶İ‚·‚ê‚Î’n‚ğ’ù³‚·‚é
-	for (i = 0; i < 4; i++) {
-		id = string_id[corner[i]];
-		if (string[id].size == 3 &&
-			string[id].libs == 2 &&
-			string[id].neighbors == 1) {
-			color = string[id].color;
-			lib1 = string[id].lib[0];
-			lib2 = string[id].lib[lib1];
-			if ((board[corner_neighbor[i][0]] == S_EMPTY ||
-				board[corner_neighbor[i][0]] == color) &&
-				(board[corner_neighbor[i][1]] == S_EMPTY ||
-					board[corner_neighbor[i][1]] == color)) {
-				neighbor = string[id].neighbor[0];
-				if (string[neighbor].libs == 2 &&
-					string[neighbor].size > 6) {
-					// ŒÄ‹z“_‚ğ‹¤—L‚µ‚Ä‚¢‚é‚©‚ÌŠm”F
-					neighbor_lib1 = string[neighbor].lib[0];
-					neighbor_lib2 = string[neighbor].lib[neighbor_lib1];
-					if ((neighbor_lib1 == lib1 && neighbor_lib2 == lib2) ||
-						(neighbor_lib1 == lib2 && neighbor_lib2 == lib1)) {
-						pos = string[neighbor].origin;
-						while (pos != STRING_END) {
-							board[pos] = (char)color;
-							pos = string_next[pos];
-						}
-						pos = string[neighbor].lib[0];
-						board[pos] = (char)color;
-						pos = string[neighbor].lib[pos];
-						board[pos] = (char)color;
-					}
-				}
-			}
-		}
+  // å››éš…ã«ã¤ã„ã¦éš…ã®ãƒã‚¬ãƒªå››ç›®ãŒå­˜åœ¨ã™ã‚‹ã‹ç¢ºèªã—
+  // å­˜åœ¨ã™ã‚Œã°åœ°ã‚’è¨‚æ­£ã™ã‚‹
+  for (i = 0; i < 4; i++) {
+    id = string_id[corner[i]];
+    if (string[id].size == 3 &&
+	string[id].libs == 2 &&
+	string[id].neighbors == 1) {
+      color = string[id].color;
+      lib1 = string[id].lib[0];
+      lib2 = string[id].lib[lib1];
+      if ((board[corner_neighbor[i][0]] == S_EMPTY ||
+	   board[corner_neighbor[i][0]] == color) &&
+	  (board[corner_neighbor[i][1]] == S_EMPTY ||
+	   board[corner_neighbor[i][1]] == color)) {
+	neighbor = string[id].neighbor[0];
+	if (string[neighbor].libs == 2 &&
+	    string[neighbor].size > 6) {
+	  // å‘¼å¸ç‚¹ã‚’å…±æœ‰ã—ã¦ã„ã‚‹ã‹ã®ç¢ºèª
+	  neighbor_lib1 = string[neighbor].lib[0];
+	  neighbor_lib2 = string[neighbor].lib[neighbor_lib1];
+	  if ((neighbor_lib1 == lib1 && neighbor_lib2 == lib2) ||
+	      (neighbor_lib1 == lib2 && neighbor_lib2 == lib1)) {
+	    pos = string[neighbor].origin;
+	    while (pos != STRING_END) {
+	      board[pos] = (char)color;
+	      pos = string_next[pos];
+	    }
+	    pos = string[neighbor].lib[0];
+	    board[pos] = (char)color;
+	    pos = string[neighbor].lib[pos];
+	    board[pos] = (char)color;
+	  }
 	}
+      }
+    }
+  }
 }
 
 
 ////////////////
-//  ’n‚ÌŒvZ  //
+//  åœ°ã®è¨ˆç®—  //
 ////////////////
 int
-CalculateScore(game_info_t *game)
-// game_info_t *game : ”Õ–Ê‚Ìî•ñ‚ğ¦‚·ƒ|ƒCƒ“ƒ^
+CalculateScore( game_info_t *game )
+// game_info_t *game : ç›¤é¢ã®æƒ…å ±ã‚’ç¤ºã™ãƒã‚¤ãƒ³ã‚¿
 {
-	char *board = game->board;
-	int i;
-	int pos;
-	int color;
-	int scores[S_MAX] = { 0 };
+  const char *board = game->board;
+  int i;
+  int pos;
+  int color;
+  int scores[S_MAX] = { 0 };
 
-	// ‹÷‚Ìƒ}ƒKƒŠl–Ú‚ÌŠm”F
-	CheckBentFourInTheCorner(game);
+  // éš…ã®ãƒã‚¬ãƒªå››ç›®ã®ç¢ºèª
+  CheckBentFourInTheCorner(game);
 
-	// ’n‚Ì”‚¦ã‚°
-	for (i = 0; i < pure_board_max; i++) {
-		pos = onboard_pos[i];
-		color = board[pos];
-		if (color == S_EMPTY) color = territory[Pat3(game->pat, pos)];
-		scores[color]++;
-	}
+  // åœ°ã®æ•°ãˆä¸Šã’
+  for (i = 0; i < pure_board_max; i++) {
+    pos = onboard_pos[i];
+    color = board[pos];
+    if (color == S_EMPTY) color = territory[Pat3(game->pat, pos)];
+    scores[color]++;
+  }
 
-	//  •|”’‚ğ•Ô‚·(ƒRƒ~‚È‚µ)
-	return(scores[S_BLACK] - scores[S_WHITE]);
+  //  é»’âˆ’ç™½ã‚’è¿”ã™(ã‚³ãƒŸãªã—)
+  return(scores[S_BLACK] - scores[S_WHITE]);
 }

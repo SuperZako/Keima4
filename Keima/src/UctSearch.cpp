@@ -1,6 +1,8 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
+#include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <climits>
 #include <cassert>
 #include <cmath>
@@ -18,6 +20,7 @@
 #include "Ladder.h"
 #include "Message.h"
 #include "PatternHash.h"
+#include "Seki.h"
 #include "Simulation.h"
 #include "UctRating.h"
 #include "UctSearch.h"
@@ -29,6 +32,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <sys/time.h>
 #endif
 
 using namespace std;
@@ -39,59 +43,59 @@ using namespace std;
 #define UNLOCK_EXPAND mutex_expand.unlock();
 
 ////////////////
-//  ‘åˆæ•Ï”  //
+//  å¤§åŸŸå¤‰æ•°  //
 ////////////////
 
-// ‚¿ŠÔ
+// æŒã¡æ™‚é–“
 double remaining_time[S_MAX];
 
-// UCT‚Ìƒm[ƒh
+// UCTã®ãƒãƒ¼ãƒ‰
 uct_node_t *uct_node;
 
-// ƒvƒŒƒCƒAƒEƒgî•ñ
+// ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆæƒ…å ±
 static po_info_t po_info;
 
-// Progressive Widening ‚Ìè‡’l
-static int pw[PURE_BOARD_MAX + 1];  
+// Progressive Widening ã®é–¾å€¤
+static int pw[PURE_BOARD_MAX + 1];
 
-// ƒm[ƒh“WŠJ‚Ìè‡’l
+// ãƒãƒ¼ãƒ‰å±•é–‹ã®é–¾å€¤
 static int expand_threshold = EXPAND_THRESHOLD_19;
 
-// sŠÔ‚ğ‰„’·‚·‚é‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO
+// è©¦è¡Œæ™‚é–“ã‚’å»¶é•·ã™ã‚‹ã‹ã©ã†ã‹ã®ãƒ•ãƒ©ã‚°
 static bool extend_time = false;
 
-int current_root; // Œ»İ‚Ìƒ‹[ƒg‚ÌƒCƒ“ƒfƒbƒNƒX
+int current_root; // ç¾åœ¨ã®ãƒ«ãƒ¼ãƒˆã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 mutex mutex_nodes[MAX_NODES];
-mutex mutex_expand;       // ƒm[ƒh“WŠJ‚ğ”r‘¼ˆ—‚·‚é‚½‚ß‚Ìmutex
+mutex mutex_expand;       // ãƒãƒ¼ãƒ‰å±•é–‹ã‚’æ’ä»–å‡¦ç†ã™ã‚‹ãŸã‚ã®mutex
 
-// ’Tõ‚Ìİ’è
+// æ¢ç´¢ã®è¨­å®š
 enum SEARCH_MODE mode = CONST_TIME_MODE;
-// g—p‚·‚éƒXƒŒƒbƒh”
+// ä½¿ç”¨ã™ã‚‹ã‚¹ãƒ¬ãƒƒãƒ‰æ•°
 int threads = 1;
-// 1è‚ ‚½‚è‚ÌsŠÔ
+// 1æ‰‹ã‚ãŸã‚Šã®è©¦è¡Œæ™‚é–“
 double const_thinking_time = CONST_TIME;
-// 1è“–‚½‚è‚ÌƒvƒŒƒCƒAƒEƒg”
+// 1æ‰‹å½“ãŸã‚Šã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆæ•°
 int playout = CONST_PLAYOUT;
-// ƒfƒtƒHƒ‹ƒg‚Ì‚¿ŠÔ
+// ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®æŒã¡æ™‚é–“
 double default_remaining_time = ALL_THINKING_TIME;
 
-// ŠeƒXƒŒƒbƒh‚É“n‚·ˆø”
+// å„ã‚¹ãƒ¬ãƒƒãƒ‰ã«æ¸¡ã™å¼•æ•°
 thread_arg_t t_arg[THREAD_MAX];
 
-// ƒvƒŒƒCƒAƒEƒg‚Ì“Œvî•ñ
-statistic_t statistic[BOARD_MAX];  
-// ”Õã‚ÌŠe“_‚ÌCriticality
-double criticality[BOARD_MAX];  
-// ”Õã‚ÌŠe“_‚ÌOwner(0-100%)
-double owner[BOARD_MAX];  
+// ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã®çµ±è¨ˆæƒ…å ±
+statistic_t statistic[BOARD_MAX];
+// ç›¤ä¸Šã®å„ç‚¹ã®Criticality
+double criticality[BOARD_MAX];
+// ç›¤ä¸Šã®å„ç‚¹ã®Owner(0-100%)
+double owner[BOARD_MAX];
 
-// Œ»İ‚ÌƒI[ƒi[‚ÌƒCƒ“ƒfƒbƒNƒX
-int owner_index[BOARD_MAX];   
-// Œ»İ‚ÌƒNƒŠƒeƒBƒJƒŠƒeƒB‚ÌƒCƒ“ƒfƒbƒNƒX
-int criticality_index[BOARD_MAX];  
+// ç¾åœ¨ã®ã‚ªãƒ¼ãƒŠãƒ¼ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
+int owner_index[BOARD_MAX];
+// ç¾åœ¨ã®ã‚¯ãƒªãƒ†ã‚£ã‚«ãƒªãƒ†ã‚£ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
+int criticality_index[BOARD_MAX];
 
-// Œó•âè‚Ìƒtƒ‰ƒO
-bool candidates[BOARD_MAX];  
+// å€™è£œæ‰‹ã®ãƒ•ãƒ©ã‚°
+bool candidates[BOARD_MAX];
 
 bool pondering_mode = false;
 
@@ -103,1548 +107,1697 @@ bool pondered = false;
 
 double time_limit;
 
-std::thread *handle[THREAD_MAX];    // ƒXƒŒƒbƒh‚Ìƒnƒ“ƒhƒ‹
+std::thread *handle[THREAD_MAX];    // ã‚¹ãƒ¬ãƒƒãƒ‰ã®ãƒãƒ³ãƒ‰ãƒ«
 
-// UCB Bonus‚Ì“™‰¿ƒpƒ‰ƒ[ƒ^
+// UCB Bonusã®ç­‰ä¾¡ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
 double bonus_equivalence = BONUS_EQUIVALENCE;
-// UCB Bonus‚Ìd‚İ
+// UCB Bonusã®é‡ã¿
 double bonus_weight = BONUS_WEIGHT;
 
-// —”¶¬Ší
+// ä¹±æ•°ç”Ÿæˆå™¨
 std::mt19937_64 *mt[THREAD_MAX];
 
-// Criticality‚ÌãŒÀ’l
+// Criticalityã®ä¸Šé™å€¤
 int criticality_max = CRITICALITY_MAX;
 
 // 
 bool reuse_subtree = false;
 
-// ©•ª‚Ìè”Ô‚ÌF
+// è‡ªåˆ†ã®æ‰‹ç•ªã®è‰²
 int my_color;
 
-clock_t begin_time;
+ray_clock::time_point begin_time;
 
 
-///////////////////
-//
-//
+////////////
+//  é–¢æ•°  //
+////////////
+
+// Virtual Lossã‚’åŠ ç®—
+static void AddVirtualLoss(child_node_t *child, int current);
+
+// æ¬¡ã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®è¨­å®š
+static void CalculateNextPlayouts(game_info_t *game, int color, double best_wp, double finish_time);
+
+// Criticaliityã®è¨ˆç®—
+static void CalculateCriticality(int color);
+
+// Criticality
+static void CalculateCriticalityIndex(uct_node_t *node, statistic_t *node_statistic, int color, int *index);
+
+// Ownershipã®è¨ˆç®—
+static void CalculateOwner(int color, int count);
+
+// Ownership
+static void CalculateOwnerIndex(uct_node_t *node, statistic_t *node_statistc, int color, int *index);
+
+// ç¾å±€é¢ã®å­ãƒãƒ¼ãƒ‰ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®å°å‡º
+static void CorrectDescendentNodes(vector<int> &indexes, int index);
+
+// ãƒãƒ¼ãƒ‰ã®å±•é–‹
+static int ExpandNode(game_info_t *game, int color, int current);
+
+// ãƒ«ãƒ¼ãƒˆã®å±•é–‹
+static int ExpandRoot(game_info_t *game, int color);
+
+// æ€è€ƒæ™‚é–“ã‚’å»¶é•·ã™ã‚‹å‡¦ç†
+static bool ExtendTime(void);
+
+// å€™è£œæ‰‹ã®åˆæœŸåŒ–
+static void InitializeCandidate(child_node_t *uct_child, int pos, bool ladder);
+
+// æ¢ç´¢æ‰“ã¡åˆ‡ã‚Šã®ç¢ºèª
+static bool InterruptionCheck(void);
+
+// UCTæ¢ç´¢
+static void ParallelUctSearch(thread_arg_t *arg);
+
+// UCTæ¢ç´¢(äºˆæ¸¬èª­ã¿)
+static void ParallelUctSearchPondering(thread_arg_t *arg);
+
+// ãƒãƒ¼ãƒ‰ã®ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚°
+static void RatingNode(game_info_t *game, int color, int index);
+
+static int RateComp(const void *a, const void *b);
+
+// UCBå€¤ãŒæœ€å¤§ã®å­ãƒãƒ¼ãƒ‰ã‚’è¿”ã™
+static int SelectMaxUcbChild(int current, int color);
+
+// å„åº§æ¨™ã®çµ±è¨ˆå‡¦ç†
+static void Statistic(game_info_t *game, int winner);
+
+// UCTæ¢ç´¢(1å›ã®å‘¼ã³å‡ºã—ã«ã¤ã, 1å›ã®æ¢ç´¢)
+static int UctSearch(game_info_t *game, int color, std::mt19937_64 *mt, int current, int *winner);
+
+// å„ãƒãƒ¼ãƒ‰ã®çµ±è¨ˆæƒ…å ±ã®æ›´æ–°
+static void UpdateNodeStatistic(game_info_t *game, int winner, statistic_t *node_statistic);
+
+// çµæœã®æ›´æ–°
+static void UpdateResult(child_node_t *child, int result, int current);
+
+
+
+/////////////////////
+//  äºˆæ¸¬èª­ã¿ã®è¨­å®š  //
+/////////////////////
 void
 SetPonderingMode(bool flag)
 {
-  pondering_mode = flag;
+	pondering_mode = flag;
 }
 
+
 ////////////////////////
-//  ’Tõƒ‚[ƒh‚Ìw’è  //
+//  æ¢ç´¢ãƒ¢ãƒ¼ãƒ‰ã®æŒ‡å®š  //
 ////////////////////////
 void
 SetMode(enum SEARCH_MODE new_mode)
 {
-  mode = new_mode;
+	mode = new_mode;
 }
 
+
 ///////////////////////////////////////
-//  1è‚ ‚½‚è‚ÌƒvƒŒƒCƒAƒEƒg”‚Ìw’è  //
+//  1æ‰‹ã‚ãŸã‚Šã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆæ•°ã®æŒ‡å®š  //
 ///////////////////////////////////////
 void
 SetPlayout(int po)
 {
-  playout = po;
+	playout = po;
 }
 
 
 /////////////////////////////////
-//  1è‚É‚©‚¯‚ésŠÔ‚Ìİ’è  //
+//  1æ‰‹ã«ã‹ã‘ã‚‹è©¦è¡Œæ™‚é–“ã®è¨­å®š  //
 /////////////////////////////////
 void
 SetConstTime(double time)
 {
-  const_thinking_time = time;
+	const_thinking_time = time;
 }
 
 
 ////////////////////////////////
-//  g—p‚·‚éƒXƒŒƒbƒh”‚Ìw’è  //
+//  ä½¿ç”¨ã™ã‚‹ã‚¹ãƒ¬ãƒƒãƒ‰æ•°ã®æŒ‡å®š  //
 ////////////////////////////////
 void
 SetThread(int new_thread)
 {
-  threads = new_thread;
+	threads = new_thread;
 }
 
 
 //////////////////////
-//  ‚¿ŠÔ‚Ìİ’è  //
+//  æŒã¡æ™‚é–“ã®è¨­å®š  //
 //////////////////////
 void
 SetTime(double time)
 {
-  default_remaining_time = time;
+	default_remaining_time = time;
 }
 
 
 //////////////////////////
-//  ƒm[ƒhÄ—˜—p‚Ìİ’è  //
+//  ãƒãƒ¼ãƒ‰å†åˆ©ç”¨ã®è¨­å®š  //
 //////////////////////////
 void
 SetReuseSubtree(bool flag)
 {
-  reuse_subtree = flag;
+	reuse_subtree = flag;
 }
 
 
 ////////////////////////////////////////////
-//  ”Õ‚Ì‘å‚«‚³‚É‡‚í‚¹‚½ƒpƒ‰ƒ[ƒ^‚Ìİ’è  //
+//  ç›¤ã®å¤§ãã•ã«åˆã‚ã›ãŸãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®è¨­å®š  //
 ////////////////////////////////////////////
 void
 SetParameter(void)
 {
-  if (pure_board_size < 11) {
-    expand_threshold = EXPAND_THRESHOLD_9;
-  } else if (pure_board_size < 16) {
-    expand_threshold = EXPAND_THRESHOLD_13;
-  } else {
-    expand_threshold = EXPAND_THRESHOLD_19;
-  }
+	if (pure_board_size < 11) {
+		expand_threshold = EXPAND_THRESHOLD_9;
+	}
+	else if (pure_board_size < 16) {
+		expand_threshold = EXPAND_THRESHOLD_13;
+	}
+	else {
+		expand_threshold = EXPAND_THRESHOLD_19;
+	}
 }
 
+//////////////////////////////////////
+//  time_settingsã‚³ãƒãƒ³ãƒ‰ã«ã‚ˆã‚‹è¨­å®š  //
+//////////////////////////////////////
+void
+SetTimeSettings(int main_time, int byoyomi, int stone)
+{
+	if (mode == CONST_PLAYOUT_MODE ||
+		mode == CONST_TIME_MODE) {
+		return;
+	}
+
+	if (main_time == 0) {
+		const_thinking_time = (double)byoyomi * 0.85;
+		mode = CONST_TIME_MODE;
+		cerr << "Const Thinking Time Mode" << endl;
+	}
+	else {
+		if (byoyomi == 0) {
+			default_remaining_time = main_time;
+			mode = TIME_SETTING_MODE;
+			cerr << "Time Setting Mode" << endl;
+		}
+		else {
+			default_remaining_time = main_time;
+			const_thinking_time = ((double)byoyomi) / stone;
+			mode = TIME_SETTING_WITH_BYOYOMI_MODE;
+			cerr << "Time Setting Mode (byoyomi)" << endl;
+		}
+	}
+}
 
 /////////////////////////
-//  UCT’Tõ‚Ì‰Šúİ’è  //
+//  UCTæ¢ç´¢ã®åˆæœŸè¨­å®š  //
 /////////////////////////
 void
 InitializeUctSearch(void)
 {
-  int i;
+	int i;
 
-  // Progressive Widening‚Ì‰Šú‰»  
-  pw[0] = 0;
-  for (i = 1; i <= PURE_BOARD_MAX; i++) {  
-    pw[i] = pw[i - 1] + (int)(40 * pow(PROGRESSIVE_WIDENING, i - 1));
-    if (pw[i] > 10000000) break;
-  }
-  for (i = i + 1; i <= PURE_BOARD_MAX; i++) { 
-    pw[i] = INT_MAX;
-  }
+	// Progressive Wideningã®åˆæœŸåŒ–  
+	pw[0] = 0;
+	for (i = 1; i <= PURE_BOARD_MAX; i++) {
+		pw[i] = pw[i - 1] + (int)(40 * pow(PROGRESSIVE_WIDENING, i - 1));
+		if (pw[i] > 10000000) break;
+	}
+	for (i = i + 1; i <= PURE_BOARD_MAX; i++) {
+		pw[i] = INT_MAX;
+	}
 
-  // UCT‚Ìƒm[ƒh‚Ìƒƒ‚ƒŠ‚ğŠm•Û
-  uct_node = (uct_node_t *)malloc(sizeof(uct_node_t) * uct_hash_size);
-  
-  if (uct_node == NULL) {
-    cerr << "Cannot allocate memory !!" << endl;
-    cerr << "You must reduce tree size !!" << endl;
-    exit(1);
-  }
+	// UCTã®ãƒãƒ¼ãƒ‰ã®ãƒ¡ãƒ¢ãƒªã‚’ç¢ºä¿
+	uct_node = new uct_node_t[uct_hash_size];
+
+	if (uct_node == NULL) {
+		cerr << "Cannot allocate memory !!" << endl;
+		cerr << "You must reduce tree size !!" << endl;
+		exit(1);
+	}
 
 }
 
 
 ////////////////////////
-//  ’Tõİ’è‚Ì‰Šú‰»  //
+//  æ¢ç´¢è¨­å®šã®åˆæœŸåŒ–  //
 ////////////////////////
 void
 InitializeSearchSetting(void)
 {
-  int i;
+	// Ownerã®åˆæœŸåŒ–
+	for (int i = 0; i < board_max; i++) {
+		owner[i] = 50;
+		owner_index[i] = 5;
+		candidates[i] = true;
+	}
 
-  // Owner‚Ì‰Šú‰»
-  for (i = 0; i < board_max; i++){
-    owner[i] = 50;
-    owner_index[i] = 5;
-    candidates[i] = true;
-  }
+	// ä¹±æ•°ã®åˆæœŸåŒ–
+	for (int i = 0; i < THREAD_MAX; i++) {
+		if (mt[i]) {
+			delete mt[i];
+		}
+		mt[i] = new mt19937_64((unsigned int)(time(NULL) + i));
+	}
 
-  // —”‚Ì‰Šú‰»
-  for (i = 0; i < THREAD_MAX; i++) {
-    if (mt[i]) {
-      delete mt[i];
-    }
-    mt[i] = new mt19937_64((unsigned int)(time(NULL) + i));
-  }
+	// æŒã¡æ™‚é–“ã®åˆæœŸåŒ–
+	for (int i = 0; i < 3; i++) {
+		remaining_time[i] = default_remaining_time;
+	}
 
-  // ‚¿ŠÔ‚Ì‰Šú‰»
-  for (i = 0; i < 3; i++) {
-    remaining_time[i] = default_remaining_time;
-  }
+	// åˆ¶é™æ™‚é–“ã‚’è¨­å®š
+	// ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®åˆæœŸåŒ–
+	if (mode == CONST_PLAYOUT_MODE) {
+		time_limit = 100000.0;
+		po_info.num = playout;
+		extend_time = false;
+	}
+	else if (mode == CONST_TIME_MODE) {
+		time_limit = const_thinking_time;
+		po_info.num = 100000000;
+		extend_time = false;
+	}
+	else if (mode == TIME_SETTING_MODE ||
+		mode == TIME_SETTING_WITH_BYOYOMI_MODE) {
+		if (pure_board_size < 11) {
+			time_limit = remaining_time[0] / TIME_RATE_9;
+			po_info.num = (int)(PLAYOUT_SPEED * time_limit);
+			extend_time = true;
+		}
+		else if (pure_board_size < 13) {
+			time_limit = remaining_time[0] / (TIME_MAXPLY_13 + TIME_C_13);
+			po_info.num = (int)(PLAYOUT_SPEED * time_limit);
+			extend_time = true;
+		}
+		else {
+			time_limit = remaining_time[0] / (TIME_MAXPLY_19 + TIME_C_19);
+			po_info.num = (int)(PLAYOUT_SPEED * time_limit);
+			extend_time = true;
+		}
+	}
 
-  // §ŒÀŠÔ‚ğİ’è
-  // ƒvƒŒƒCƒAƒEƒg‰ñ”‚Ì‰Šú‰»
-  if (mode == CONST_PLAYOUT_MODE) {
-    time_limit = 100000.0;
-    po_info.num = playout;
-    extend_time = false;
-  } else if (mode == CONST_TIME_MODE) {
-    time_limit = threads * const_thinking_time;
-    po_info.num = 100000000;
-    extend_time = false;
-  } else if (mode == TIME_SETTING_MODE) {
-    if (pure_board_size < 11) {
-      time_limit = threads * remaining_time[0] / TIME_RATE_9;
-      po_info.num = (int)(PLAYOUT_SPEED * time_limit);
-      extend_time = true;
-    } else if (pure_board_size < 13) {
-      time_limit = threads * remaining_time[0] / (TIME_MAXPLY_13 + TIME_C_13);
-      po_info.num = (int)(PLAYOUT_SPEED * time_limit);
-      extend_time = true;
-    } else {
-      time_limit = threads * remaining_time[0] / (TIME_MAXPLY_19 + TIME_C_19);
-      po_info.num = (int)(PLAYOUT_SPEED * time_limit);
-      extend_time = true;
-    }
-  }
-
-  pondered = false;
-  pondering_stop = true;
+	pondered = false;
+	pondering_stop = true;
 }
 
-
-////////////
-//  I—¹  //
-////////////
-void
-FinalizeUctSearch(void)
-{
-
-}
-
-
-bool
-IsPondered()
-{
-  return pondered;
-}
 
 void
-StopPondering()
+StopPondering(void)
 {
-  int i;
+	if (!pondering_mode) {
+		return;
+	}
 
-  if (!pondering_mode) {
-    return;
-  }
-
-  if (ponder) {
-    pondering_stop = true;
-    for (i = 0; i < threads; i++) {
-      handle[i]->join();
-      delete handle[i];
-    }
-    ponder = false;
-    pondered = true;
-    PrintPonderingCount(po_info.count);
-  }
+	if (ponder) {
+		pondering_stop = true;
+		for (int i = 0; i < threads; i++) {
+			handle[i]->join();
+			delete handle[i];
+		}
+		ponder = false;
+		pondered = true;
+		PrintPonderingCount(po_info.count);
+	}
 }
 
 
 /////////////////////////////////////
-//  UCTƒAƒ‹ƒSƒŠƒYƒ€‚É‚æ‚é’…è¶¬  //
+//  UCTã‚¢ãƒ«ã‚´ãƒªã‚ºãƒ ã«ã‚ˆã‚‹ç€æ‰‹ç”Ÿæˆ  //
 /////////////////////////////////////
 int
 UctSearchGenmove(game_info_t *game, int color)
 {
-  int i, pos;
-  double finish_time;
-  int select_index;
-  int max_count;
-  double pass_wp;
-  double best_wp;
-  child_node_t *uct_child;
-  int pre_simulated;
+	int pos, select_index, max_count, pre_simulated;
+	double finish_time, pass_wp, best_wp;
+	child_node_t *uct_child;
 
+	// æ¢ç´¢æƒ…å ±ã‚’ã‚¯ãƒªã‚¢
+	if (!pondered) {
+		memset(statistic, 0, sizeof(statistic_t) * board_max);
+		fill_n(criticality_index, board_max, 0);
+		for (int i = 0; i < board_max; i++) {
+			criticality[i] = 0.0;
+		}
+	}
+	po_info.count = 0;
 
-  // ’Tõî•ñ‚ğƒNƒŠƒA
-  if (!pondered) {
-    memset(statistic, 0, sizeof(statistic_t) * board_max); 
-    memset(criticality_index, 0, sizeof(int) * board_max); 
-    memset(criticality, 0, sizeof(double) * board_max);    
-  }
-  po_info.count = 0;
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		owner[pos] = 50;
+		owner_index[pos] = 5;
+		candidates[pos] = true;
+	}
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    owner[pos] = 50;
-    owner_index[pos] = 5;
-    candidates[pos] = true;
-  }
+	if (!reuse_subtree) {
+		ClearUctHash();
+	}
 
-  if (reuse_subtree) {
-    DeleteOldHash(game);
-  } else {
-    ClearUctHash();
-  }
+	// æ¢ç´¢é–‹å§‹æ™‚åˆ»ã®è¨˜éŒ²
+	begin_time = ray_clock::now();
 
-  // ’TõŠJn‚Ì‹L˜^
-  begin_time = clock();
+	// UCTã®åˆæœŸåŒ–
+	current_root = ExpandRoot(game, color);
 
-  // UCT‚Ì‰Šú‰»
-  current_root = ExpandRoot(game, color);
+	// å‰å›ã‹ã‚‰æŒã¡è¾¼ã‚“ã æ¢ç´¢å›æ•°ã‚’è¨˜éŒ²
+	pre_simulated = uct_node[current_root].move_count;
 
-  // ‘O‰ñ‚©‚ç‚¿‚ñ‚¾’Tõ‰ñ”‚ğ‹L˜^
-  pre_simulated = uct_node[current_root].move_count;
+	// å­ãƒãƒ¼ãƒ‰ãŒ1ã¤(ãƒ‘ã‚¹ã®ã¿)ãªã‚‰PASSã‚’è¿”ã™
+	if (uct_node[current_root].child_num <= 1) {
+		return PASS;
+	}
 
-  // qƒm[ƒh‚ª1‚Â(ƒpƒX‚Ì‚İ)‚È‚çPASS‚ğ•Ô‚·
-  if (uct_node[current_root].child_num <= 1) {
-    return PASS;
-  }
+	// æ¢ç´¢å›æ•°ã®é–¾å€¤ã‚’è¨­å®š
+	po_info.halt = po_info.num;
 
-  // ’Tõ‰ñ”‚Ìè‡’l‚ğİ’è
-  po_info.halt = po_info.num;
+	// è‡ªåˆ†ã®æ‰‹ç•ªã‚’è¨­å®š
+	my_color = color;
 
-  // ©•ª‚Ìè”Ô‚ğİ’è
-  my_color = color;
+	// Dynamic Komiã®ç®—å‡º(ç½®ç¢ã®ã¨ãã®ã¿)
+	DynamicKomi(game, &uct_node[current_root], color);
 
-  // Dynamic Komi‚ÌZo(’uŒé‚Ì‚Æ‚«‚Ì‚İ)
-  DynamicKomi(game, &uct_node[current_root], color);
+	// æ¢ç´¢æ™‚é–“ã¨ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®äºˆå®šå€¤ã‚’å‡ºåŠ›
+	PrintPlayoutLimits(time_limit, po_info.halt);
 
-#if defined (_WIN32)
-  PrintPlayoutLimits(time_limit, po_info.halt);
-#else
-  PrintPlayoutLimits(time_limit / threads, po_info.halt);
-#endif
+	for (int i = 0; i < threads; i++) {
+		t_arg[i].thread_id = i;
+		t_arg[i].game = game;
+		t_arg[i].color = color;
+		handle[i] = new thread(ParallelUctSearch, &t_arg[i]);
+	}
 
-  for (i = 0; i < threads; i++) {
-    t_arg[i].thread_id = i;
-    t_arg[i].game = game;
-    t_arg[i].color = color;
-    handle[i] = new thread(ParallelUctSearch, &t_arg[i]);
-  }
+	for (int i = 0; i < threads; i++) {
+		handle[i]->join();
+		delete handle[i];
+	}
+	// ç€æ‰‹ãŒ41æ‰‹ä»¥é™ã§, 
+	// æ™‚é–“å»¶é•·ã‚’è¡Œã†è¨­å®šã«ãªã£ã¦ã„ã¦,
+	// æ¢ç´¢æ™‚é–“å»¶é•·ã‚’ã™ã¹ãã¨ãã¯
+	// æ¢ç´¢å›æ•°ã‚’1.5å€ã«å¢—ã‚„ã™
+	if (game->moves > pure_board_size * 3 - 17 &&
+		extend_time &&
+		ExtendTime()) {
+		po_info.halt = (int)(1.5 * po_info.halt);
+		time_limit *= 1.5;
+		for (int i = 0; i < threads; i++) {
+			handle[i] = new thread(ParallelUctSearch, &t_arg[i]);
+		}
 
-  for (i = 0; i < threads; i++) {
-    handle[i]->join();
-    delete handle[i];
-  }
-  // ’…è‚ª41èˆÈ~‚Å, 
-  // ŠÔ‰„’·‚ğs‚¤İ’è‚É‚È‚Á‚Ä‚¢‚Ä,
-  // ’TõŠÔ‰„’·‚ğ‚·‚×‚«‚Æ‚«‚Í
-  // ’Tõ‰ñ”‚ğ1.5”{‚É‘‚â‚·
-  if (game->moves > pure_board_size * 3 - 17 &&
-      extend_time &&
-      ExtendTime()) {
-    po_info.halt = (int)(1.5 * po_info.halt);
-    time_limit *= 1.5;
-    for (i = 0; i < threads; i++) {
-      handle[i] = new thread(ParallelUctSearch, &t_arg[i]);
-    }
+		for (int i = 0; i < threads; i++) {
+			handle[i]->join();
+			delete handle[i];
+		}
+	}
 
-    for (i = 0; i < threads; i++) {
-      handle[i]->join();
-      delete handle[i];
-    }
-  }
+	uct_child = uct_node[current_root].child;
 
-  uct_child = uct_node[current_root].child;
+	select_index = PASS_INDEX;
+	max_count = uct_child[PASS_INDEX].move_count;
 
-  select_index = PASS_INDEX;
-  max_count = uct_child[PASS_INDEX].move_count;
+	// æ¢ç´¢å›æ•°æœ€å¤§ã®æ‰‹ã‚’è¦‹ã¤ã‘ã‚‹
+	for (int i = 1; i < uct_node[current_root].child_num; i++) {
+		if (uct_child[i].move_count > max_count) {
+			select_index = i;
+			max_count = uct_child[i].move_count;
+		}
+	}
 
-  // ’Tõ‰ñ”Å‘å‚Ìè‚ğŒ©‚Â‚¯‚é
-  for (i = 1; i < uct_node[current_root].child_num; i++){
-    if (uct_child[i].move_count > max_count) {
-      select_index = i;
-      max_count = uct_child[i].move_count;
-    }
-  }
+	// æ¢ç´¢ã«ã‹ã‹ã£ãŸæ™‚é–“ã‚’æ±‚ã‚ã‚‹
+	finish_time = GetSpendTime(begin_time);
 
-  // ’Tõ‚É‚©‚©‚Á‚½ŠÔ‚ğ‹‚ß‚é
-  finish_time = GetSpendTime(begin_time);
-#if !defined (_WIN32)
-  finish_time /= threads;
-#endif
+	// ãƒ‘ã‚¹ã®å‹ç‡ã®ç®—å‡º
+	if (uct_child[PASS_INDEX].move_count != 0) {
+		pass_wp = (double)uct_child[PASS_INDEX].win / uct_child[PASS_INDEX].move_count;
+	}
+	else {
+		pass_wp = 0;
+	}
 
-  // ƒpƒX‚ÌŸ—¦‚ÌZo
-  if (uct_child[PASS_INDEX].move_count != 0) {
-    pass_wp = (double)uct_child[PASS_INDEX].win / uct_child[PASS_INDEX].move_count;
-  } else {
-    pass_wp = 0;
-  }
+	// é¸æŠã—ãŸç€æ‰‹ã®å‹ç‡ã®ç®—å‡º(Dynamic Komi)
+	best_wp = (double)uct_child[select_index].win / uct_child[select_index].move_count;
 
-  // ‘I‘ğ‚µ‚½’…è‚ÌŸ—¦‚ÌZo(Dynamic Komi)
-  best_wp = (double)uct_child[select_index].win / uct_child[select_index].move_count;
+	// å„åœ°ç‚¹ã®é ˜åœ°ã«ãªã‚‹ç¢ºç‡ã®å‡ºåŠ›
+	PrintOwner(&uct_node[current_root], color, owner);
 
-  // Še’n“_‚Ì—Ì’n‚É‚È‚éŠm—¦‚Ìo—Í
-  PrintOwner(&uct_node[current_root], color, owner);
+	// ãƒ‘ã‚¹ã‚’ã™ã‚‹ã¨ãã¯
+	// 1. ç›´å‰ã®ç€æ‰‹ãŒãƒ‘ã‚¹ã§, ãƒ‘ã‚¹ã—ãŸæ™‚ã®å‹ç‡ãŒPASS_THRESHOLDä»¥ä¸Š
+	// 2. ç€æ‰‹æ•°ãŒMAX_MOVESä»¥ä¸Š
+	// æŠ•äº†ã™ã‚‹ã¨ãã¯
+	//    Dynamic Komiã§ã®å‹ç‡ãŒRESIGN_THRESHOLDä»¥ä¸‹
+	// ãã‚Œä»¥å¤–ã¯é¸ã°ã‚ŒãŸç€æ‰‹ã‚’è¿”ã™
+	if (pass_wp >= PASS_THRESHOLD &&
+		(game->record[game->moves - 1].pos == PASS)) {
+		pos = PASS;
+	}
+	else if (game->moves >= MAX_MOVES) {
+		pos = PASS;
+	}
+	else if (game->moves > 3 &&
+		game->record[game->moves - 1].pos == PASS &&
+		game->record[game->moves - 3].pos == PASS) {
+		pos = PASS;
+	}
+	else if (best_wp <= RESIGN_THRESHOLD) {
+		pos = RESIGN;
+	}
+	else {
+		pos = uct_child[select_index].pos;
+	}
 
-  // ƒpƒX‚ğ‚·‚é‚Æ‚«‚Í
-  // 1. ’¼‘O‚Ì’…è‚ªƒpƒX‚Å, ƒpƒX‚µ‚½‚ÌŸ—¦‚ªPASS_THRESHOLDˆÈã
-  // 2. ’…è”‚ªMAX_MOVESˆÈã
-  // “Š—¹‚·‚é‚Æ‚«‚Í
-  //    Dynamic Komi‚Å‚ÌŸ—¦‚ªRESIGN_THRESHOLDˆÈ‰º
-  // ‚»‚êˆÈŠO‚Í‘I‚Î‚ê‚½’…è‚ğ•Ô‚·
-  if (pass_wp >= PASS_THRESHOLD &&
-      (game->record[game->moves - 1].pos == PASS)){
-    pos = PASS;
-  } else if (game->moves >= MAX_MOVES) {
-    pos = PASS;
-  } else if (game->moves > 3 &&
-	     game->record[game->moves - 1].pos == PASS &&
-	     game->record[game->moves - 3].pos == PASS) {
-    pos = PASS;
-  } else if (best_wp <= RESIGN_THRESHOLD) {
-    pos = RESIGN;
-  } else {
-    pos = uct_child[select_index].pos;
-  }
+	// æœ€å–„å¿œæ‰‹åˆ—ã‚’å‡ºåŠ›
+	PrintBestSequence(game, uct_node, current_root, color);
+	// æ¢ç´¢ã®æƒ…å ±ã‚’å‡ºåŠ›(æ¢ç´¢å›æ•°, å‹æ•—, æ€è€ƒæ™‚é–“, å‹ç‡, æ¢ç´¢é€Ÿåº¦)
+	PrintPlayoutInformation(&uct_node[current_root], &po_info, finish_time, pre_simulated);
+	// æ¬¡ã®æ¢ç´¢ã§ã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®ç®—å‡º
+	CalculateNextPlayouts(game, color, best_wp, finish_time);
 
-  // Å‘P‰è—ñ‚ğo—Í
-  PrintBestSequence(game, uct_node, current_root, color);
-  // ’Tõ‚Ìî•ñ‚ğo—Í(’Tõ‰ñ”, Ÿ”s, vlŠÔ, Ÿ—¦, ’Tõ‘¬“x)
-  PrintPlayoutInformation(&uct_node[current_root], &po_info, finish_time, pre_simulated);
-  // Ÿ‚Ì’Tõ‚Å‚ÌƒvƒŒƒCƒAƒEƒg‰ñ”‚ÌZo
-  CalculateNextPlayouts(game, color, best_wp, finish_time);
-
-  return pos;
+	return pos;
 }
 
 
 ///////////////
-//  —\‘ª“Ç‚İ  //
+//  äºˆæ¸¬èª­ã¿  //
 ///////////////
 void
 UctSearchPondering(game_info_t *game, int color)
 {
-  int i, pos;
+	int pos;
 
-  if (!pondering_mode) {
-    return ;
-  }
+	if (!pondering_mode) {
+		return;
+	}
 
-  // ’Tõî•ñ‚ğƒNƒŠƒA
-  memset(statistic, 0, sizeof(statistic_t) * board_max);  
-  memset(criticality_index, 0, sizeof(int) * board_max);  
-  memset(criticality, 0, sizeof(double) * board_max);     
-  po_info.count = 0;
+	// æ¢ç´¢æƒ…å ±ã‚’ã‚¯ãƒªã‚¢
+	memset(statistic, 0, sizeof(statistic_t) * board_max);
+	fill_n(criticality_index, board_max, 0);
+	for (int i = 0; i < board_max; i++) {
+		criticality[i] = 0.0;
+	}
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    owner[pos] = 50;
-    owner_index[pos] = 5;
-    candidates[pos] = true;
-  }
+	po_info.count = 0;
 
-  DeleteOldHash(game);
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		owner[pos] = 50;
+		owner_index[pos] = 5;
+		candidates[pos] = true;
+	}
 
-  // UCT‚Ì‰Šú‰»
-  current_root = ExpandRoot(game, color);
+	// UCTã®åˆæœŸåŒ–
+	current_root = ExpandRoot(game, color);
 
-  pondered = false;
+	pondered = false;
 
-  // qƒm[ƒh‚ª1‚Â(ƒpƒX‚Ì‚İ)‚È‚çPASS‚ğ•Ô‚·
-  if (uct_node[current_root].child_num <= 1) {
-    ponder = false;
-    pondering_stop = true;
-    return ;
-  }
+	// å­ãƒãƒ¼ãƒ‰ãŒ1ã¤(ãƒ‘ã‚¹ã®ã¿)ãªã‚‰PASSã‚’è¿”ã™
+	if (uct_node[current_root].child_num <= 1) {
+		ponder = false;
+		pondering_stop = true;
+		return;
+	}
 
-  ponder = true;
-  pondering_stop = false;
+	ponder = true;
+	pondering_stop = false;
 
-  // Dynamic Komi‚ÌZo(’uŒé‚Ì‚Æ‚«‚Ì‚İ)
-  DynamicKomi(game, &uct_node[current_root], color);
+	// Dynamic Komiã®ç®—å‡º(ç½®ç¢ã®ã¨ãã®ã¿)
+	DynamicKomi(game, &uct_node[current_root], color);
 
-  for (i = 0; i < threads; i++) {
-    t_arg[i].thread_id = i;
-    t_arg[i].game = game;
-    t_arg[i].color = color;
-    handle[i] = new thread(ParallelUctSearchPondering, &t_arg[i]);
-  }
+	for (int i = 0; i < threads; i++) {
+		t_arg[i].thread_id = i;
+		t_arg[i].game = game;
+		t_arg[i].color = color;
+		handle[i] = new thread(ParallelUctSearchPondering, &t_arg[i]);
+	}
 
-  return ;
+	return;
 }
 
 /////////////////////
-//  Œó•âè‚Ì‰Šú‰»  //
+//  å€™è£œæ‰‹ã®åˆæœŸåŒ–  //
 /////////////////////
-void
+static void
 InitializeCandidate(child_node_t *uct_child, int pos, bool ladder)
 {
-  uct_child->pos = pos;
-  uct_child->move_count = 0;
-  uct_child->win = 0;
-  uct_child->index = NOT_EXPANDED;
-  uct_child->rate = 0.0;
-  uct_child->flag = false;
-  uct_child->open = false;
-  uct_child->ladder = ladder;
+	uct_child->pos = pos;
+	uct_child->move_count = 0;
+	uct_child->win = 0;
+	uct_child->index = NOT_EXPANDED;
+	uct_child->rate = 0.0;
+	uct_child->flag = false;
+	uct_child->open = false;
+	uct_child->ladder = ladder;
 }
 
 
 /////////////////////////
-//  ƒ‹[ƒgƒm[ƒh‚Ì“WŠJ  //
+//  ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰ã®å±•é–‹  //
 /////////////////////////
-int
+static int
 ExpandRoot(game_info_t *game, int color)
 {
-  unsigned int index = FindSameHashIndex(game->current_hash, color, game->moves);
-  child_node_t *uct_child;
-  int i, pos, child_num = 0;
-  bool ladder[BOARD_MAX] = { false };  
-  int pm1 = PASS, pm2 = PASS;
-  int moves = game->moves;
+	unsigned long long hash = game->move_hash;
+	unsigned int index = FindSameHashIndex(hash, color, game->moves);
+	child_node_t *uct_child;
+	int i, pos, child_num = 0;
+	bool ladder[BOARD_MAX] = { false };
+	int pm1 = PASS, pm2 = PASS;
+	int moves = game->moves;
 
-  // ’¼‘O‚Ì’…è‚ÌÀ•W‚ğæ‚èo‚·
-  pm1 = game->record[moves - 1].pos;
-  // 2è‘O‚Ì’…è‚ÌÀ•W‚ğæ‚èo‚·
-  if (moves > 1) pm2 = game->record[moves - 2].pos;
+	// ç›´å‰ã®ç€æ‰‹ã®åº§æ¨™ã‚’å–ã‚Šå‡ºã™
+	pm1 = game->record[moves - 1].pos;
+	// 2æ‰‹å‰ã®ç€æ‰‹ã®åº§æ¨™ã‚’å–ã‚Šå‡ºã™
+	if (moves > 1) pm2 = game->record[moves - 2].pos;
 
-  // 9˜H”Õ‚Å‚È‚¯‚ê‚ÎƒVƒ`ƒ‡ƒE‚ğ’²‚×‚é  
-  if (pure_board_size != 9) {
-    LadderExtension(game, color, ladder);
-  }
+	// 9è·¯ç›¤ã§ãªã‘ã‚Œã°ã‚·ãƒãƒ§ã‚¦ã‚’èª¿ã¹ã‚‹  
+	if (pure_board_size != 9) {
+		LadderExtension(game, color, ladder);
+	}
 
-  // Šù‚É“WŠJ‚³‚ê‚Ä‚¢‚½‚Í, ’TõŒ‹‰Ê‚ğÄ—˜—p‚·‚é
-  if (index != uct_hash_size) {
-    // ’¼‘O‚Æ2è‘O‚Ì’…è‚ğXV
-    uct_node[index].previous_move1 = pm1;
-    uct_node[index].previous_move2 = pm2;
+	// æ—¢ã«å±•é–‹ã•ã‚Œã¦ã„ãŸæ™‚ã¯, æ¢ç´¢çµæœã‚’å†åˆ©ç”¨ã™ã‚‹
+	if (index != uct_hash_size) {
+		vector<int> indexes;
 
-    uct_child = uct_node[index].child;
+		// ç¾å±€é¢ã®å­ãƒãƒ¼ãƒ‰ä»¥å¤–ã‚’å‰Šé™¤ã™ã‚‹
+		CorrectDescendentNodes(indexes, index);
+		std::sort(indexes.begin(), indexes.end());
+		ClearNotDescendentNodes(indexes);
 
-    child_num = uct_node[index].child_num;
+		// ç›´å‰ã¨2æ‰‹å‰ã®ç€æ‰‹ã‚’æ›´æ–°
+		uct_node[index].previous_move1 = pm1;
+		uct_node[index].previous_move2 = pm2;
 
-    for (i = 0; i < child_num; i++) {
-      pos = uct_child[i].pos;
-      uct_child[i].rate = 0.0;
-      uct_child[i].flag = false;
-      uct_child[i].open = false;
-      if (ladder[pos]) {
-	uct_node[index].move_count -= uct_child[i].move_count;
-	uct_node[index].win -= uct_child[i].win;
-	uct_child[i].move_count = 0;
-	uct_child[i].win = 0;
-      }
-      uct_child[i].ladder = ladder[pos];
-    }
+		uct_child = uct_node[index].child;
 
-    // “WŠJ‚³‚ê‚½ƒm[ƒh”‚ğ1‚É‰Šú‰»
-    uct_node[index].width = 1;
+		child_num = uct_node[index].child_num;
 
-    // Œó•âè‚ÌƒŒ[ƒeƒBƒ“ƒO
-    RatingNode(game, color, index);
+		for (i = 0; i < child_num; i++) {
+			pos = uct_child[i].pos;
+			uct_child[i].rate = 0.0;
+			uct_child[i].flag = false;
+			uct_child[i].open = false;
+			if (ladder[pos]) {
+				uct_node[index].move_count -= uct_child[i].move_count;
+				uct_node[index].win -= uct_child[i].win;
+				uct_child[i].move_count = 0;
+				uct_child[i].win = 0;
+			}
+			uct_child[i].ladder = ladder[pos];
+		}
 
-    PrintReuseCount(uct_node[index].move_count);
+		// å±•é–‹ã•ã‚ŒãŸãƒãƒ¼ãƒ‰æ•°ã‚’1ã«åˆæœŸåŒ–
+		uct_node[index].width = 1;
 
-    return index;
-  } else {
-    // ‹ó‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ’T‚·
-    index = SearchEmptyIndex(game->current_hash, color, game->moves);
+		// å€™è£œæ‰‹ã®ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚°
+		RatingNode(game, color, index);
 
-    assert(index != uct_hash_size);    
-    
-    // ƒ‹[ƒgƒm[ƒh‚Ì‰Šú‰»
-    uct_node[index].previous_move1 = pm1;
-    uct_node[index].previous_move2 = pm2;
-    uct_node[index].move_count = 0;
-    uct_node[index].win = 0;
-    uct_node[index].width = 0;
-    uct_node[index].child_num = 0;
-    memset(uct_node[index].statistic, 0, sizeof(statistic_t) * BOARD_MAX); 
-    
-    uct_child = uct_node[index].child;
-    
-    // ƒpƒXƒm[ƒh‚Ì“WŠJ
-    InitializeCandidate(&uct_child[PASS_INDEX], PASS, ladder[PASS]);
-    child_num++;
-    
-    // Œó•âè‚Ì“WŠJ
-    for (i = 0; i < pure_board_max; i++) {
-      pos = onboard_pos[i];
-      // ’TõŒó•â‚©‚Â‡–@è‚Å‚ ‚ê‚Î’Tõ‘ÎÛ‚É‚·‚é
-      if (candidates[pos] && IsLegal(game, pos, color)) {
-	InitializeCandidate(&uct_child[child_num], pos, ladder[pos]);
-	child_num++;
-      }
-    }
-    
-    // qƒm[ƒhŒÂ”‚Ìİ’è
-    uct_node[index].child_num = child_num;
-    
-    // Œó•âè‚ÌƒŒ[ƒeƒBƒ“ƒO
-    RatingNode(game, color, index);
-    
-    uct_node[index].width++;
-  }
+		PrintReuseCount(uct_node[index].move_count);
 
-  return index;
+		return index;
+	}
+	else {
+		// å…¨ãƒãƒ¼ãƒ‰ã®ã‚¯ãƒªã‚¢
+		ClearUctHash();
+
+		// ç©ºã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ã™
+		index = SearchEmptyIndex(hash, color, game->moves);
+
+		assert(index != uct_hash_size);
+
+		// ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰ã®åˆæœŸåŒ–
+		uct_node[index].previous_move1 = pm1;
+		uct_node[index].previous_move2 = pm2;
+		uct_node[index].move_count = 0;
+		uct_node[index].win = 0;
+		uct_node[index].width = 0;
+		uct_node[index].child_num = 0;
+		memset(uct_node[index].statistic, 0, sizeof(statistic_t) * BOARD_MAX);
+		fill_n(uct_node[index].seki, BOARD_MAX, false);
+
+		uct_child = uct_node[index].child;
+
+		// ãƒ‘ã‚¹ãƒãƒ¼ãƒ‰ã®å±•é–‹
+		InitializeCandidate(&uct_child[PASS_INDEX], PASS, ladder[PASS]);
+		child_num++;
+
+		// å€™è£œæ‰‹ã®å±•é–‹
+		if (game->moves == 1) {
+			for (i = 0; i < first_move_candidates; i++) {
+				pos = first_move_candidate[i];
+				// æ¢ç´¢å€™è£œã‹ã¤åˆæ³•æ‰‹ã§ã‚ã‚Œã°æ¢ç´¢å¯¾è±¡ã«ã™ã‚‹
+				if (candidates[pos] && IsLegal(game, pos, color)) {
+					InitializeCandidate(&uct_child[child_num], pos, ladder[pos]);
+					child_num++;
+				}
+			}
+		}
+		else {
+			for (i = 0; i < pure_board_max; i++) {
+				pos = onboard_pos[i];
+				// æ¢ç´¢å€™è£œã‹ã¤åˆæ³•æ‰‹ã§ã‚ã‚Œã°æ¢ç´¢å¯¾è±¡ã«ã™ã‚‹
+				if (candidates[pos] && IsLegal(game, pos, color)) {
+					InitializeCandidate(&uct_child[child_num], pos, ladder[pos]);
+					child_num++;
+				}
+			}
+		}
+
+		// å­ãƒãƒ¼ãƒ‰å€‹æ•°ã®è¨­å®š
+		uct_node[index].child_num = child_num;
+
+		// å€™è£œæ‰‹ã®ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚°
+		RatingNode(game, color, index);
+
+		// ã‚»ã‚­ã®ç¢ºèª
+		CheckSeki(game, uct_node[index].seki);
+
+		uct_node[index].width++;
+	}
+
+	return index;
 }
 
 
 
 ///////////////////
-//  ƒm[ƒh‚Ì“WŠJ  //
+//  ãƒãƒ¼ãƒ‰ã®å±•é–‹  //
 ///////////////////
-int
+static int
 ExpandNode(game_info_t *game, int color, int current)
 {
-  unsigned int index = FindSameHashIndex(game->current_hash, color, game->moves);
-  child_node_t *uct_child, *uct_sibling;
-  int i, pos, child_num = 0;
-  double max_rate = 0.0;
-  int max_pos = PASS, sibling_num;
-  int pm1 = PASS, pm2 = PASS;
-  int moves = game->moves;
+	unsigned long long hash = game->move_hash;
+	unsigned int index = FindSameHashIndex(hash, color, game->moves);
+	child_node_t *uct_child, *uct_sibling;
+	int i, pos, child_num = 0;
+	double max_rate = 0.0;
+	int max_pos = PASS, sibling_num;
+	int pm1 = PASS, pm2 = PASS;
+	int moves = game->moves;
 
-  // ‡—¬æ‚ªŒŸ’m‚Å‚«‚ê‚Î, ‚»‚ê‚ğ•Ô‚·
-  if (index != uct_hash_size) {
-    return index;
-  }
+	// åˆæµå…ˆãŒæ¤œçŸ¥ã§ãã‚Œã°, ãã‚Œã‚’è¿”ã™
+	if (index != uct_hash_size) {
+		return index;
+	}
 
-  // ‹ó‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ’T‚·
-  index = SearchEmptyIndex(game->current_hash, color, game->moves);
+	// ç©ºã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ã™
+	index = SearchEmptyIndex(hash, color, game->moves);
 
-  assert(index != uct_hash_size);    
+	assert(index != uct_hash_size);
 
-  // ’¼‘O‚Ì’…è‚ÌÀ•W‚ğæ‚èo‚·
-  pm1 = game->record[moves - 1].pos;
-  // 2è‘O‚Ì’…è‚ÌÀ•W‚ğæ‚èo‚·
-  if (moves > 1) pm2 = game->record[moves - 2].pos;
+	// ç›´å‰ã®ç€æ‰‹ã®åº§æ¨™ã‚’å–ã‚Šå‡ºã™
+	pm1 = game->record[moves - 1].pos;
+	// 2æ‰‹å‰ã®ç€æ‰‹ã®åº§æ¨™ã‚’å–ã‚Šå‡ºã™
+	if (moves > 1) pm2 = game->record[moves - 2].pos;
 
-  // Œ»İ‚Ìƒm[ƒh‚Ì‰Šú‰»
-  uct_node[index].previous_move1 = pm1;
-  uct_node[index].previous_move2 = pm2;
-  uct_node[index].move_count = 0;
-  uct_node[index].win = 0;
-  uct_node[index].width = 0;
-  uct_node[index].child_num = 0;
-  memset(uct_node[index].statistic, 0, sizeof(statistic_t) * BOARD_MAX);  
+	// ç¾åœ¨ã®ãƒãƒ¼ãƒ‰ã®åˆæœŸåŒ–
+	uct_node[index].previous_move1 = pm1;
+	uct_node[index].previous_move2 = pm2;
+	uct_node[index].move_count = 0;
+	uct_node[index].win = 0;
+	uct_node[index].width = 0;
+	uct_node[index].child_num = 0;
+	memset(uct_node[index].statistic, 0, sizeof(statistic_t) * BOARD_MAX);
+	fill_n(uct_node[index].seki, BOARD_MAX, false);
+	uct_child = uct_node[index].child;
 
-  uct_child = uct_node[index].child;
+	// ãƒ‘ã‚¹ãƒãƒ¼ãƒ‰ã®å±•é–‹
+	InitializeCandidate(&uct_child[PASS_INDEX], PASS, false);
+	child_num++;
 
-  // ƒpƒXƒm[ƒh‚Ì“WŠJ
-  InitializeCandidate(&uct_child[PASS_INDEX], PASS, false);
-  child_num++;
+	// å€™è£œæ‰‹ã®å±•é–‹
+	for (i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		// æ¢ç´¢å€™è£œã§ãªã‘ã‚Œã°é™¤å¤–
+		if (candidates[pos] && IsLegal(game, pos, color)) {
+			InitializeCandidate(&uct_child[child_num], pos, false);
+			child_num++;
+		}
+	}
 
-  // Œó•âè‚Ì“WŠJ
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    // ’TõŒó•â‚Å‚È‚¯‚ê‚ÎœŠO
-    if (candidates[pos] && IsLegal(game, pos, color)) {
-      InitializeCandidate(&uct_child[child_num], pos, false);
-      child_num++;
-    }
-  }
+	// å­ãƒãƒ¼ãƒ‰ã®å€‹æ•°ã‚’è¨­å®š
+	uct_node[index].child_num = child_num;
 
-  // qƒm[ƒh‚ÌŒÂ”‚ğİ’è
-  uct_node[index].child_num = child_num;
+	// å€™è£œæ‰‹ã®ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚°
+	RatingNode(game, color, index);
 
-  // Œó•âè‚ÌƒŒ[ƒeƒBƒ“ƒO
-  RatingNode(game, color, index);
+	// ã‚»ã‚­ã®ç¢ºèª
+	CheckSeki(game, uct_node[index].seki);
 
-  // ’Tõ•‚ğ1‚Â‘‚â‚·
-  uct_node[index].width++;
+	// æ¢ç´¢å¹…ã‚’1ã¤å¢—ã‚„ã™
+	uct_node[index].width++;
 
-  // ŒZ’íƒm[ƒh‚Åˆê”ÔƒŒ[ƒg‚Ì‚‚¢è‚ğ‹‚ß‚é
-  uct_sibling = uct_node[current].child;
-  sibling_num = uct_node[current].child_num;
-  for (i = 0; i < sibling_num; i++) {
-    if (uct_sibling[i].pos != pm1) {
-      if (uct_sibling[i].rate > max_rate) {
-	max_rate = uct_sibling[i].rate;
-	max_pos = uct_sibling[i].pos;
-      }
-    }
-  }
+	// å…„å¼Ÿãƒãƒ¼ãƒ‰ã§ä¸€ç•ªãƒ¬ãƒ¼ãƒˆã®é«˜ã„æ‰‹ã‚’æ±‚ã‚ã‚‹
+	uct_sibling = uct_node[current].child;
+	sibling_num = uct_node[current].child_num;
+	for (i = 0; i < sibling_num; i++) {
+		if (uct_sibling[i].pos != pm1) {
+			if (uct_sibling[i].rate > max_rate) {
+				max_rate = uct_sibling[i].rate;
+				max_pos = uct_sibling[i].pos;
+			}
+		}
+	}
 
-  // ŒZ’íƒm[ƒh‚Åˆê”ÔƒŒ[ƒg‚Ì‚‚¢è‚ğ“WŠJ‚·‚é
-  for (i = 0; i < child_num; i++) {
-    if (uct_child[i].pos == max_pos) {
-      if (!uct_child[i].flag) {
-	uct_child[i].open = true;
-      }
-      break;
-    }
-  }
+	// å…„å¼Ÿãƒãƒ¼ãƒ‰ã§ä¸€ç•ªãƒ¬ãƒ¼ãƒˆã®é«˜ã„æ‰‹ã‚’å±•é–‹ã™ã‚‹
+	for (i = 0; i < child_num; i++) {
+		if (uct_child[i].pos == max_pos) {
+			if (!uct_child[i].flag) {
+				uct_child[i].open = true;
+			}
+			break;
+		}
+	}
 
-  return index;
+	return index;
 }
 
 
 //////////////////////////////////////
-//  ƒm[ƒh‚ÌƒŒ[ƒeƒBƒ“ƒO             //
-//  (Progressive Widening‚Ì‚½‚ß‚É)  //
+//  ãƒãƒ¼ãƒ‰ã®ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚°             //
+//  (Progressive Wideningã®ãŸã‚ã«)  //
 //////////////////////////////////////
-void
+static void
 RatingNode(game_info_t *game, int color, int index)
 {
-  int i;
-  int child_num = uct_node[index].child_num;
-  int pos;
-  int moves = game->moves;
-  double score = 0.0;
-  int max_index;
-  double max_score;
-  pattern_hash_t hash_pat;
-  int pat_index[3] = {0};
-  double dynamic_parameter;
-  bool self_atari_flag;
-  child_node_t *uct_child = uct_node[index].child;
-  uct_features_t uct_features;
+	int child_num = uct_node[index].child_num;
+	int pos;
+	int moves = game->moves;
+	double score = 0.0;
+	int max_index;
+	double max_score;
+	pattern_hash_t hash_pat;
+	int pat_index[3] = { 0 };
+	double dynamic_parameter;
+	bool self_atari_flag;
+	child_node_t *uct_child = uct_node[index].child;
+	uct_features_t uct_features;
 
-  memset(&uct_features, 0, sizeof(uct_features_t));
+	memset(&uct_features, 0, sizeof(uct_features_t));
 
-  // ƒpƒX‚ÌƒŒ[ƒeƒBƒ“ƒO
-  uct_child[PASS_INDEX].rate = CalculateLFRScore(game, PASS, pat_index, &uct_features);
+	// ãƒ‘ã‚¹ã®ãƒ¬ãƒ¼ãƒ†ã‚£ãƒ³ã‚°
+	uct_child[PASS_INDEX].rate = CalculateLFRScore(game, PASS, pat_index, &uct_features);
 
-  // ’¼‘O‚Ì’…è‚Å”­¶‚µ‚½“Á’¥‚ÌŠm”F
-  UctCheckFeatures(game, color, &uct_features);
-  // ’¼‘O‚Ì’…è‚ÅÎ‚ğ2‚Âæ‚ç‚ê‚½‚©Šm”F
-  UctCheckRemove2Stones(game, color, &uct_features);
-  // ’¼‘O‚Ì’…è‚ÅÎ‚ğ3‚Âæ‚ç‚ê‚½‚©Šm”F
-  UctCheckRemove3Stones(game, color, &uct_features);
-  // 2è‘O‚Å…‚ª”­¶‚µ‚Ä‚¢‚½‚ç, …‚ğ‰ğÁ‚·‚éƒgƒŠ‚ÌŠm”F
-  if (game->ko_move == moves - 2) {
-    UctCheckCaptureAfterKo(game, color, &uct_features);
-    UctCheckKoConnection(game, &uct_features);
-  }
+	// ç›´å‰ã®ç€æ‰‹ã§ç™ºç”Ÿã—ãŸç‰¹å¾´ã®ç¢ºèª
+	UctCheckFeatures(game, color, &uct_features);
+	// ç›´å‰ã®ç€æ‰‹ã§çŸ³ã‚’2ã¤å–ã‚‰ã‚ŒãŸã‹ç¢ºèª
+	UctCheckRemove2Stones(game, color, &uct_features);
+	// ç›´å‰ã®ç€æ‰‹ã§çŸ³ã‚’3ã¤å–ã‚‰ã‚ŒãŸã‹ç¢ºèª
+	UctCheckRemove3Stones(game, color, &uct_features);
+	// 2æ‰‹å‰ã§åŠ«ãŒç™ºç”Ÿã—ã¦ã„ãŸã‚‰, åŠ«ã‚’è§£æ¶ˆã™ã‚‹ãƒˆãƒªã®ç¢ºèª
+	if (game->ko_move == moves - 2) {
+		UctCheckCaptureAfterKo(game, color, &uct_features);
+		UctCheckKoConnection(game, &uct_features);
+	}
 
-  max_index = 0;
-  max_score = uct_child[0].rate;
+	max_index = 0;
+	max_score = uct_child[0].rate;
 
-  for (i = 1; i < child_num; i++) {
-    pos = uct_child[i].pos;
+	for (int i = 1; i < child_num; i++) {
+		pos = uct_child[i].pos;
 
-    // ©ŒÈƒAƒ^ƒŠ‚ÌŠm”F
-    self_atari_flag = UctCheckSelfAtari(game, color, pos, &uct_features);
-    // ƒEƒbƒeƒKƒGƒV‚ÌŠm”F
-    UctCheckSnapBack(game, color, pos, &uct_features);
-    // ƒgƒŠ‚ÌŠm”F
-    if ((uct_features.tactical_features1[pos] & capture_mask)== 0) {
-      UctCheckCapture(game, color, pos, &uct_features);
-    }
-    // ƒAƒ^ƒŠ‚ÌŠm”F
-    if ((uct_features.tactical_features1[pos] & atari_mask) == 0) {
-      UctCheckAtari(game, color, pos, &uct_features);
-    }
-    // —¼ƒPƒCƒ}‚ÌŠm”F
-    UctCheckDoubleKeima(game, color, pos, &uct_features);
-    // ƒPƒCƒ}‚ÌƒcƒPƒRƒV‚ÌŠm”F
-    UctCheckKeimaTsukekoshi(game, color, pos, &uct_features);
+		// è‡ªå·±ã‚¢ã‚¿ãƒªã®ç¢ºèª
+		self_atari_flag = UctCheckSelfAtari(game, color, pos, &uct_features);
+		// ã‚¦ãƒƒãƒ†ã‚¬ã‚¨ã‚·ã®ç¢ºèª
+		UctCheckSnapBack(game, color, pos, &uct_features);
+		// ãƒˆãƒªã®ç¢ºèª
+		if ((uct_features.tactical_features1[pos] & capture_mask) == 0) {
+			UctCheckCapture(game, color, pos, &uct_features);
+		}
+		// ã‚¢ã‚¿ãƒªã®ç¢ºèª
+		if ((uct_features.tactical_features1[pos] & atari_mask) == 0) {
+			UctCheckAtari(game, color, pos, &uct_features);
+		}
+		// ä¸¡ã‚±ã‚¤ãƒã®ç¢ºèª
+		UctCheckDoubleKeima(game, color, pos, &uct_features);
+		// ã‚±ã‚¤ãƒã®ãƒ„ã‚±ã‚³ã‚·ã®ç¢ºèª
+		UctCheckKeimaTsukekoshi(game, color, pos, &uct_features);
 
-    // ©ŒÈƒAƒ^ƒŠ‚ª–³ˆÓ–¡‚¾‚Á‚½‚çƒXƒRƒA‚ğ0.0‚É‚·‚é
-    // “¦‚°‚ç‚ê‚È‚¢ƒVƒ`ƒ‡ƒE‚È‚çƒXƒRƒA‚ğ-1.0‚É‚·‚é
-    if (!self_atari_flag) {
-      score = 0.0;
-    } else if (uct_child[i].ladder) {
-      score = -1.0;
-    } else {
-      // MD3, MD4, MD5‚Ìƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…’l‚ğ‹‚ß‚é
-      PatternHash(&game->pat[pos], &hash_pat);
-      // MD3‚Ìƒpƒ^[ƒ“‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ’T‚·
-      pat_index[0] = SearchIndex(md3_index, hash_pat.list[MD_3]);
-      // MD4‚Ìƒpƒ^[ƒ“‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ’T‚·
-      pat_index[1] = SearchIndex(md4_index, hash_pat.list[MD_4]);
-      // MD5‚Ìƒpƒ^[ƒ“‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ’T‚·
-      pat_index[2] = SearchIndex(md5_index, hash_pat.list[MD_5 + MD_MAX]);
+		// è‡ªå·±ã‚¢ã‚¿ãƒªãŒç„¡æ„å‘³ã ã£ãŸã‚‰ã‚¹ã‚³ã‚¢ã‚’0.0ã«ã™ã‚‹
+		// é€ƒã’ã‚‰ã‚Œãªã„ã‚·ãƒãƒ§ã‚¦ãªã‚‰ã‚¹ã‚³ã‚¢ã‚’-1.0ã«ã™ã‚‹
+		if (!self_atari_flag) {
+			score = 0.0;
+		}
+		else if (uct_child[i].ladder) {
+			score = -1.0;
+		}
+		else {
+			// MD3, MD4, MD5ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒãƒƒã‚·ãƒ¥å€¤ã‚’æ±‚ã‚ã‚‹
+			PatternHash(&game->pat[pos], &hash_pat);
+			// MD3ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ã™
+			pat_index[0] = SearchIndex(md3_index, hash_pat.list[MD_3]);
+			// MD4ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ã™
+			pat_index[1] = SearchIndex(md4_index, hash_pat.list[MD_4]);
+			// MD5ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ã™
+			pat_index[2] = SearchIndex(md5_index, hash_pat.list[MD_5 + MD_MAX]);
 
-      score = CalculateLFRScore(game, pos, pat_index, &uct_features);
-    }
+			score = CalculateLFRScore(game, pos, pat_index, &uct_features);
+		}
 
-    // ‚»‚Ìè‚ÌƒÁ‚ğ‹L˜^
-    uct_child[i].rate = score;
+		// ãã®æ‰‹ã®Î³ã‚’è¨˜éŒ²
+		uct_child[i].rate = score;
 
-    // Œ»İŒ©‚Ä‚¢‚é‰ÓŠ‚ÌOwner‚ÆCriticality‚Ì•â³’l‚ğ‹‚ß‚é
-    dynamic_parameter = uct_owner[owner_index[pos]] + uct_criticality[criticality_index[pos]];
+		// ç¾åœ¨è¦‹ã¦ã„ã‚‹ç®‡æ‰€ã®Ownerã¨Criticalityã®è£œæ­£å€¤ã‚’æ±‚ã‚ã‚‹
+		dynamic_parameter = uct_owner[owner_index[pos]] + uct_criticality[criticality_index[pos]];
 
-    // Å‚àƒÁ‚ª‘å‚«‚¢’…è‚ğ‹L˜^‚·‚é
-    if (score + dynamic_parameter > max_score) {
-      max_index = i;
-      max_score = score + dynamic_parameter;
-    }
+		// æœ€ã‚‚Î³ãŒå¤§ãã„ç€æ‰‹ã‚’è¨˜éŒ²ã™ã‚‹
+		if (score + dynamic_parameter > max_score) {
+			max_index = i;
+			max_score = score + dynamic_parameter;
+		}
+	}
 
-    // ƒEƒbƒeƒKƒGƒV‚¾‚Á‚½‚ç‹­§“I‚É’TõŒó•â‚É“ü‚ê‚é
-    if ((uct_features.tactical_features1[pos] & uct_mask[UCT_SNAPBACK]) > 0) {
-      uct_child[i].open = true;
-    }
-
-    // ƒIƒCƒIƒgƒV‚¾‚Á‚½‚ç‹­§“I‚É’TõŒó•â‚É“ü‚ê‚é
-    if ((uct_features.tactical_features1[pos] & uct_mask[UCT_OIOTOSHI]) > 0) {
-      uct_child[i].open = true;
-    }
-
-  }
-
-  // Å‚àƒÁ‚ª‘å‚«‚¢’…è‚ğ’Tõ‚Å‚«‚é‚æ‚¤‚É‚·‚é
-  uct_child[max_index].flag = true;
+	// æœ€ã‚‚Î³ãŒå¤§ãã„ç€æ‰‹ã‚’æ¢ç´¢ã§ãã‚‹ã‚ˆã†ã«ã™ã‚‹
+	uct_child[max_index].flag = true;
 }
 
 
 
 
 //////////////////////////
-//  ’Tõ‘Å‚¿~‚ß‚ÌŠm”F  //
+//  æ¢ç´¢æ‰“ã¡æ­¢ã‚ã®ç¢ºèª  //
 //////////////////////////
-bool
+static bool
 InterruptionCheck(void)
 {
-  int i;
-  int max = 0, second = 0;
-  int child_num = uct_node[current_root].child_num;
-  int rest = po_info.halt - po_info.count;
-  child_node_t *uct_child = uct_node[current_root].child;
+	int max = 0, second = 0;
+	const int child_num = uct_node[current_root].child_num;
+	const int rest = po_info.halt - po_info.count;
+	child_node_t *uct_child = uct_node[current_root].child;
 
-  if (mode != CONST_PLAYOUT_MODE && 
-      GetSpendTime(begin_time) * 10.0 < time_limit) {
-      return false;
-  }
+	if (mode != CONST_PLAYOUT_MODE &&
+		GetSpendTime(begin_time) * 10.0 < time_limit) {
+		return false;
+	}
 
-  // ’Tõ‰ñ”‚ªÅ‚à‘½‚¢è‚ÆŸ‚É‘½‚¢è‚ğ‹‚ß‚é
-  for (i = 0; i < child_num; i++) {
-    if (uct_child[i].move_count > max) {
-      second = max;
-      max = uct_child[i].move_count;
-    } else if (uct_child[i].move_count > second) {
-      second = uct_child[i].move_count;
-    }
-  }
+	// æ¢ç´¢å›æ•°ãŒæœ€ã‚‚å¤šã„æ‰‹ã¨æ¬¡ã«å¤šã„æ‰‹ã‚’æ±‚ã‚ã‚‹
+	for (int i = 0; i < child_num; i++) {
+		if (uct_child[i].move_count > max) {
+			second = max;
+			max = uct_child[i].move_count;
+		}
+		else if (uct_child[i].move_count > second) {
+			second = uct_child[i].move_count;
+		}
+	}
 
-  // c‚è‚Ì’Tõ‚ğ‘S‚ÄŸ‘Pè‚É”ï‚â‚µ‚Ä‚à
-  // Å‘Pè‚ğ’´‚¦‚ç‚ê‚È‚¢ê‡‚Í’Tõ‚ğ‘Å‚¿Ø‚é
-  if (max - second > rest) {
-    return true;
-  } else {
-    return false;
-  }
+	// æ®‹ã‚Šã®æ¢ç´¢ã‚’å…¨ã¦æ¬¡å–„æ‰‹ã«è²»ã‚„ã—ã¦ã‚‚
+	// æœ€å–„æ‰‹ã‚’è¶…ãˆã‚‰ã‚Œãªã„å ´åˆã¯æ¢ç´¢ã‚’æ‰“ã¡åˆ‡ã‚‹
+	if (max - second > rest) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 
 ///////////////////////////
-//  vlŠÔ‰„’·‚ÌŠm”F   //
+//  æ€è€ƒæ™‚é–“å»¶é•·ã®ç¢ºèª   //
 ///////////////////////////
-bool
+static bool
 ExtendTime(void)
 {
-  int i;
-  int max = 0, second = 0;
-  int child_num = uct_node[current_root].child_num;
-  child_node_t *uct_child = uct_node[current_root].child;
+	int max = 0, second = 0;
+	const int child_num = uct_node[current_root].child_num;
+	child_node_t *uct_child = uct_node[current_root].child;
 
-  // ’Tõ‰ñ”‚ªÅ‚à‘½‚¢è‚ÆŸ‚É‘½‚¢è‚ğ‹‚ß‚é
-  for (i = 0; i < child_num; i++) {
-    if (uct_child[i].move_count > max) {
-      second = max;
-      max = uct_child[i].move_count;
-    } else if (uct_child[i].move_count > second) {
-      second = uct_child[i].move_count;
-    }
-  }
+	// æ¢ç´¢å›æ•°ãŒæœ€ã‚‚å¤šã„æ‰‹ã¨æ¬¡ã«å¤šã„æ‰‹ã‚’æ±‚ã‚ã‚‹
+	for (int i = 0; i < child_num; i++) {
+		if (uct_child[i].move_count > max) {
+			second = max;
+			max = uct_child[i].move_count;
+		}
+		else if (uct_child[i].move_count > second) {
+			second = uct_child[i].move_count;
+		}
+	}
 
-  // Å‘Pè‚Ì’Tõ‰ñ”‚ª‚ªŸ‘Pè‚Ì’Tõ‰ñ”‚Ì
-  // 1.2”{–¢–‚È‚ç’Tõ‰„’·
-  if (max < second * 1.2) {
-    return true;
-  } else {
-    return false;
-  }
+	// æœ€å–„æ‰‹ã®æ¢ç´¢å›æ•°ãŒãŒæ¬¡å–„æ‰‹ã®æ¢ç´¢å›æ•°ã®
+	// 1.2å€æœªæº€ãªã‚‰æ¢ç´¢å»¶é•·
+	if (max < second * 1.2) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 
 
 /////////////////////////////////
-//  •À—ñˆ—‚ÅŒÄ‚Ño‚·ŠÖ”     //
-//  UCTƒAƒ‹ƒSƒŠƒYƒ€‚ğ”½•œ‚·‚é  //
+//  ä¸¦åˆ—å‡¦ç†ã§å‘¼ã³å‡ºã™é–¢æ•°     //
+//  UCTã‚¢ãƒ«ã‚´ãƒªã‚ºãƒ ã‚’åå¾©ã™ã‚‹  //
 /////////////////////////////////
-void
+static void
 ParallelUctSearch(thread_arg_t *arg)
 {
-  thread_arg_t *targ = (thread_arg_t *)arg;
-  game_info_t *game;
-  int color = targ->color;
-  bool interruption = false;
-  bool enough_size = true;
-  int winner = 0;
-  int interval = CRITICALITY_INTERVAL;
+	thread_arg_t *targ = (thread_arg_t *)arg;
+	game_info_t *game;
+	int color = targ->color;
+	bool interruption = false;
+	bool enough_size = true;
+	int winner = 0;
+	int interval = CRITICALITY_INTERVAL;
 
-  game = AllocateGame();
+	game = AllocateGame();
 
-  // ƒXƒŒƒbƒhID‚ª0‚ÌƒXƒŒƒbƒh‚¾‚¯•Ê‚Ìˆ—‚ğ‚·‚é
-  // ’Tõ‰ñ”‚ªè‡’l‚ğ’´‚¦‚é, ‚Ü‚½‚Í’Tõ‚ª‘Å‚¿Ø‚ç‚ê‚½‚çƒ‹[ƒv‚ğ”²‚¯‚é
-  if (targ->thread_id == 0) {
-    do {
-      // ’Tõ‰ñ”‚ğ1‰ñ‘‚â‚·	
-      atomic_fetch_add(&po_info.count, 1);
-      // ”Õ–Ê‚ÌƒRƒs[
-      CopyGame(game, targ->game);
-      // 1‰ñƒvƒŒƒCƒAƒEƒg‚·‚é
-      UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
-      // ’Tõ‚ğ‘Å‚¿Ø‚é‚©Šm”F
-      interruption = InterruptionCheck();
-      // ƒnƒbƒVƒ…‚É—]—T‚ª‚ ‚é‚©Šm”F
-      enough_size = CheckRemainingHashSize();
-      // Owner‚ÆCriticality‚ğŒvZ‚·‚é
-      if (po_info.count > interval) {
-	CalculateOwner(color, po_info.count);
-	CalculateCriticality(color);
-	interval += CRITICALITY_INTERVAL;
-      }
-      if (GetSpendTime(begin_time) > time_limit) break;
-    } while (po_info.count < po_info.halt && !interruption && enough_size);
-  } else {
-    do {
-      // ’Tõ‰ñ”‚ğ1‰ñ‘‚â‚·	
-      atomic_fetch_add(&po_info.count, 1);
-      // ”Õ–Ê‚ÌƒRƒs[
-      CopyGame(game, targ->game);
-      // 1‰ñƒvƒŒƒCƒAƒEƒg‚·‚é
-      UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
-      // ’Tõ‚ğ‘Å‚¿Ø‚é‚©Šm”F
-      interruption = InterruptionCheck();
-      // ƒnƒbƒVƒ…‚É—]—T‚ª‚ ‚é‚©Šm”F
-      enough_size = CheckRemainingHashSize();
-      if (GetSpendTime(begin_time) > time_limit) break;
-    } while (po_info.count < po_info.halt && !interruption && enough_size);
-  }
+	// ã‚¹ãƒ¬ãƒƒãƒ‰IDãŒ0ã®ã‚¹ãƒ¬ãƒƒãƒ‰ã ã‘åˆ¥ã®å‡¦ç†ã‚’ã™ã‚‹
+	// æ¢ç´¢å›æ•°ãŒé–¾å€¤ã‚’è¶…ãˆã‚‹, ã¾ãŸã¯æ¢ç´¢ãŒæ‰“ã¡åˆ‡ã‚‰ã‚ŒãŸã‚‰ãƒ«ãƒ¼ãƒ—ã‚’æŠœã‘ã‚‹
+	if (targ->thread_id == 0) {
+		do {
+			// æ¢ç´¢å›æ•°ã‚’1å›å¢—ã‚„ã™	
+			atomic_fetch_add(&po_info.count, 1);
+			// ç›¤é¢ã®ã‚³ãƒ”ãƒ¼
+			CopyGame(game, targ->game);
+			// 1å›ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã™ã‚‹
+			UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
+			// æ¢ç´¢ã‚’æ‰“ã¡åˆ‡ã‚‹ã‹ç¢ºèª
+			interruption = InterruptionCheck();
+			// ãƒãƒƒã‚·ãƒ¥ã«ä½™è£•ãŒã‚ã‚‹ã‹ç¢ºèª
+			enough_size = CheckRemainingHashSize();
+			// Ownerã¨Criticalityã‚’è¨ˆç®—ã™ã‚‹
+			if (po_info.count > interval) {
+				CalculateOwner(color, po_info.count);
+				CalculateCriticality(color);
+				interval += CRITICALITY_INTERVAL;
+			}
+			if (GetSpendTime(begin_time) > time_limit) break;
+		} while (po_info.count < po_info.halt && !interruption && enough_size);
+	}
+	else {
+		do {
+			// æ¢ç´¢å›æ•°ã‚’1å›å¢—ã‚„ã™	
+			atomic_fetch_add(&po_info.count, 1);
+			// ç›¤é¢ã®ã‚³ãƒ”ãƒ¼
+			CopyGame(game, targ->game);
+			// 1å›ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã™ã‚‹
+			UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
+			// æ¢ç´¢ã‚’æ‰“ã¡åˆ‡ã‚‹ã‹ç¢ºèª
+			interruption = InterruptionCheck();
+			// ãƒãƒƒã‚·ãƒ¥ã«ä½™è£•ãŒã‚ã‚‹ã‹ç¢ºèª
+			enough_size = CheckRemainingHashSize();
+			if (GetSpendTime(begin_time) > time_limit) break;
+		} while (po_info.count < po_info.halt && !interruption && enough_size);
+	}
 
-  // ƒƒ‚ƒŠ‚Ì‰ğ•ú
-  FreeGame(game);
-  return;
+	// ãƒ¡ãƒ¢ãƒªã®è§£æ”¾
+	FreeGame(game);
+	return;
 }
 
 
 /////////////////////////////////
-//  •À—ñˆ—‚ÅŒÄ‚Ño‚·ŠÖ”     //
-//  UCTƒAƒ‹ƒSƒŠƒYƒ€‚ğ”½•œ‚·‚é  //
+//  ä¸¦åˆ—å‡¦ç†ã§å‘¼ã³å‡ºã™é–¢æ•°     //
+//  UCTã‚¢ãƒ«ã‚´ãƒªã‚ºãƒ ã‚’åå¾©ã™ã‚‹  //
 /////////////////////////////////
-void
+static void
 ParallelUctSearchPondering(thread_arg_t *arg)
 {
-  thread_arg_t *targ = (thread_arg_t *)arg;
-  game_info_t *game;
-  int color = targ->color;
-  bool enough_size = true;
-  int winner = 0;
-  int interval = CRITICALITY_INTERVAL;
+	thread_arg_t *targ = (thread_arg_t *)arg;
+	game_info_t *game;
+	int color = targ->color;
+	bool enough_size = true;
+	int winner = 0;
+	int interval = CRITICALITY_INTERVAL;
 
-  game = AllocateGame();
+	game = AllocateGame();
 
-  // ƒXƒŒƒbƒhID‚ª0‚ÌƒXƒŒƒbƒh‚¾‚¯•Ê‚Ìˆ—‚ğ‚·‚é
-  // ’Tõ‰ñ”‚ªè‡’l‚ğ’´‚¦‚é, ‚Ü‚½‚Í’Tõ‚ª‘Å‚¿Ø‚ç‚ê‚½‚çƒ‹[ƒv‚ğ”²‚¯‚é
-  if (targ->thread_id == 0) {
-    do {
-      // ’Tõ‰ñ”‚ğ1‰ñ‘‚â‚·	
-      atomic_fetch_add(&po_info.count, 1);
-      // ”Õ–Ê‚ÌƒRƒs[
-      CopyGame(game, targ->game);
-      // 1‰ñƒvƒŒƒCƒAƒEƒg‚·‚é
-      UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
-      // ƒnƒbƒVƒ…‚É—]—T‚ª‚ ‚é‚©Šm”F
-      enough_size = CheckRemainingHashSize();
-      // Owner‚ÆCriticality‚ğŒvZ‚·‚é
-      if (po_info.count > interval) {
-	CalculateOwner(color, po_info.count);
-	CalculateCriticality(color);
-	interval += CRITICALITY_INTERVAL;
-      }
-    } while (!pondering_stop && enough_size);
-  } else {
-    do {
-      // ’Tõ‰ñ”‚ğ1‰ñ‘‚â‚·	
-      atomic_fetch_add(&po_info.count, 1);
-      // ”Õ–Ê‚ÌƒRƒs[
-      CopyGame(game, targ->game);
-      // 1‰ñƒvƒŒƒCƒAƒEƒg‚·‚é
-      UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
-      // ƒnƒbƒVƒ…‚É—]—T‚ª‚ ‚é‚©Šm”F
-      enough_size = CheckRemainingHashSize();
-    } while (!pondering_stop && enough_size);
-  }
+	// ã‚¹ãƒ¬ãƒƒãƒ‰IDãŒ0ã®ã‚¹ãƒ¬ãƒƒãƒ‰ã ã‘åˆ¥ã®å‡¦ç†ã‚’ã™ã‚‹
+	// æ¢ç´¢å›æ•°ãŒé–¾å€¤ã‚’è¶…ãˆã‚‹, ã¾ãŸã¯æ¢ç´¢ãŒæ‰“ã¡åˆ‡ã‚‰ã‚ŒãŸã‚‰ãƒ«ãƒ¼ãƒ—ã‚’æŠœã‘ã‚‹
+	if (targ->thread_id == 0) {
+		do {
+			// æ¢ç´¢å›æ•°ã‚’1å›å¢—ã‚„ã™	
+			atomic_fetch_add(&po_info.count, 1);
+			// ç›¤é¢ã®ã‚³ãƒ”ãƒ¼
+			CopyGame(game, targ->game);
+			// 1å›ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã™ã‚‹
+			UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
+			// ãƒãƒƒã‚·ãƒ¥ã«ä½™è£•ãŒã‚ã‚‹ã‹ç¢ºèª
+			enough_size = CheckRemainingHashSize();
+			// Ownerã¨Criticalityã‚’è¨ˆç®—ã™ã‚‹
+			if (po_info.count > interval) {
+				CalculateOwner(color, po_info.count);
+				CalculateCriticality(color);
+				interval += CRITICALITY_INTERVAL;
+			}
+		} while (!pondering_stop && enough_size);
+	}
+	else {
+		do {
+			// æ¢ç´¢å›æ•°ã‚’1å›å¢—ã‚„ã™	
+			atomic_fetch_add(&po_info.count, 1);
+			// ç›¤é¢ã®ã‚³ãƒ”ãƒ¼
+			CopyGame(game, targ->game);
+			// 1å›ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã™ã‚‹
+			UctSearch(game, color, mt[targ->thread_id], current_root, &winner);
+			// ãƒãƒƒã‚·ãƒ¥ã«ä½™è£•ãŒã‚ã‚‹ã‹ç¢ºèª
+			enough_size = CheckRemainingHashSize();
+		} while (!pondering_stop && enough_size);
+	}
 
-  // ƒƒ‚ƒŠ‚Ì‰ğ•ú
-  FreeGame(game);
-  return;
+	// ãƒ¡ãƒ¢ãƒªã®è§£æ”¾
+	FreeGame(game);
+	return;
 }
 
 
 //////////////////////////////////////////////
-//  UCT’Tõ‚ğs‚¤ŠÖ”                        //
-//  1‰ñ‚ÌŒÄ‚Ño‚µ‚É‚Â‚«, 1ƒvƒŒƒCƒAƒEƒg‚·‚é    //
+//  UCTæ¢ç´¢ã‚’è¡Œã†é–¢æ•°                        //
+//  1å›ã®å‘¼ã³å‡ºã—ã«ã¤ã, 1ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã™ã‚‹    //
 //////////////////////////////////////////////
-int 
+static int
 UctSearch(game_info_t *game, int color, mt19937_64 *mt, int current, int *winner)
 {
-  int result = 0, next_index;
-  double score;
-  child_node_t *uct_child = uct_node[current].child;  
+	int result = 0, next_index;
+	double score;
+	child_node_t *uct_child = uct_node[current].child;
 
-  // Œ»İŒ©‚Ä‚¢‚éƒm[ƒh‚ğƒƒbƒN
-  LOCK_NODE(current);
-  // UCB’lÅ‘å‚Ìè‚ğ‹‚ß‚é
-  next_index = SelectMaxUcbChild(current, color);
-  // ‘I‚ñ‚¾è‚ğ’…è
-  PutStone(game, uct_child[next_index].pos, color);
-  // F‚ğ“ü‚ê‘Ö‚¦‚é
-  color = FLIP_COLOR(color);
+	// ç¾åœ¨è¦‹ã¦ã„ã‚‹ãƒãƒ¼ãƒ‰ã‚’ãƒ­ãƒƒã‚¯
+	LOCK_NODE(current);
+	// UCBå€¤æœ€å¤§ã®æ‰‹ã‚’æ±‚ã‚ã‚‹
+	next_index = SelectMaxUcbChild(current, color);
+	// é¸ã‚“ã æ‰‹ã‚’ç€æ‰‹
+	PutStone(game, uct_child[next_index].pos, color);
+	// è‰²ã‚’å…¥ã‚Œæ›¿ãˆã‚‹
+	color = FLIP_COLOR(color);
 
-  if (uct_child[next_index].move_count < expand_threshold) {
-    // Virtual Loss‚ğ‰ÁZ
-    AddVirtualLoss(&uct_child[next_index], current);
+	if (uct_child[next_index].move_count < expand_threshold) {
+		// Virtual Lossã‚’åŠ ç®—
+		AddVirtualLoss(&uct_child[next_index], current);
 
-    // Œ»İŒ©‚Ä‚¢‚éƒm[ƒh‚ÌƒƒbƒN‚ğ‰ğœ
-    UNLOCK_NODE(current);
+		memcpy(game->seki, uct_node[current].seki, sizeof(bool) * BOARD_MAX);
 
-    // I‹Ç‚Ü‚Å‘Î‹Ç‚ÌƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“
-    Simulation(game, color, mt);
-    
-    // ƒRƒ~‚ğŠÜ‚ß‚È‚¢”Õ–Ê‚ÌƒXƒRƒA‚ğ‹‚ß‚é
-    score = (double)CalculateScore(game);
-    
-    // ƒRƒ~‚ğl—¶‚µ‚½Ÿ”s
-    if (score - dynamic_komi[my_color] > 0) {
-      result = (color == S_BLACK ? 0 : 1);
-      *winner = S_BLACK;
-    } else if (score - dynamic_komi[my_color] < 0){
-      result = (color == S_WHITE ? 0 : 1);
-      *winner = S_WHITE;
-    }
-    
-    // “Œvî•ñ‚Ì‹L˜^
-    Statistic(game, *winner);
-  } else {
-    // Virtual Loss‚ğ‰ÁZ
-    AddVirtualLoss(&uct_child[next_index], current);
-    // ƒm[ƒh‚Ì“WŠJ‚ÌŠm”F
-    if (uct_child[next_index].index == -1) {
-      // ƒm[ƒh‚Ì“WŠJ’†‚ÍƒƒbƒN
-      LOCK_EXPAND;
-      // ƒm[ƒh‚Ì“WŠJ
-      uct_child[next_index].index = ExpandNode(game, color, current);
-      // ƒm[ƒh“WŠJ‚ÌƒƒbƒN‚Ì‰ğœ
-      UNLOCK_EXPAND;
-    }
-    // Œ»İŒ©‚Ä‚¢‚éƒm[ƒh‚ÌƒƒbƒN‚ğ‰ğœ
-    UNLOCK_NODE(current);
-    // è”Ô‚ğ“ü‚ê‘Ö‚¦‚Ä1è[‚­“Ç‚Ş
-    result = UctSearch(game, color, mt, uct_child[next_index].index, winner);
-  }
+		// ç¾åœ¨è¦‹ã¦ã„ã‚‹ãƒãƒ¼ãƒ‰ã®ãƒ­ãƒƒã‚¯ã‚’è§£é™¤
+		UNLOCK_NODE(current);
 
-  // ’TõŒ‹‰Ê‚Ì”½‰f
-  UpdateResult(&uct_child[next_index], result, current);
+		// çµ‚å±€ã¾ã§å¯¾å±€ã®ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³
+		Simulation(game, color, mt);
 
-  // “Œvî•ñ‚ÌXV
-  UpdateNodeStatistic(game, *winner, uct_node[current].statistic);
+		// ã‚³ãƒŸã‚’å«ã‚ãªã„ç›¤é¢ã®ã‚¹ã‚³ã‚¢ã‚’æ±‚ã‚ã‚‹
+		score = (double)CalculateScore(game);
 
-  return 1 - result;
+		// ã‚³ãƒŸã‚’è€ƒæ…®ã—ãŸå‹æ•—
+		if (my_color == S_BLACK) {
+			if (score - dynamic_komi[my_color] >= 0) {
+				result = (color == S_BLACK ? 0 : 1);
+				*winner = S_BLACK;
+			}
+			else {
+				result = (color == S_WHITE ? 0 : 1);
+				*winner = S_WHITE;
+			}
+		}
+		else {
+			if (score - dynamic_komi[my_color] > 0) {
+				result = (color == S_BLACK ? 0 : 1);
+				*winner = S_BLACK;
+			}
+			else {
+				result = (color == S_WHITE ? 0 : 1);
+				*winner = S_WHITE;
+			}
+		}
+		// çµ±è¨ˆæƒ…å ±ã®è¨˜éŒ²
+		Statistic(game, *winner);
+	}
+	else {
+		// Virtual Lossã‚’åŠ ç®—
+		AddVirtualLoss(&uct_child[next_index], current);
+		// ãƒãƒ¼ãƒ‰ã®å±•é–‹ã®ç¢ºèª
+		if (uct_child[next_index].index == -1) {
+			// ãƒãƒ¼ãƒ‰ã®å±•é–‹ä¸­ã¯ãƒ­ãƒƒã‚¯
+			LOCK_EXPAND;
+			// ãƒãƒ¼ãƒ‰ã®å±•é–‹
+			uct_child[next_index].index = ExpandNode(game, color, current);
+			// ãƒãƒ¼ãƒ‰å±•é–‹ã®ãƒ­ãƒƒã‚¯ã®è§£é™¤
+			UNLOCK_EXPAND;
+		}
+		// ç¾åœ¨è¦‹ã¦ã„ã‚‹ãƒãƒ¼ãƒ‰ã®ãƒ­ãƒƒã‚¯ã‚’è§£é™¤
+		UNLOCK_NODE(current);
+		// æ‰‹ç•ªã‚’å…¥ã‚Œæ›¿ãˆã¦1æ‰‹æ·±ãèª­ã‚€
+		result = UctSearch(game, color, mt, uct_child[next_index].index, winner);
+	}
+
+	// æ¢ç´¢çµæœã®åæ˜ 
+	UpdateResult(&uct_child[next_index], result, current);
+
+	// çµ±è¨ˆæƒ…å ±ã®æ›´æ–°
+	UpdateNodeStatistic(game, *winner, uct_node[current].statistic);
+
+	return 1 - result;
 }
 
 
 //////////////////////////
-//  Virtual Loss‚Ì‰ÁZ  //
+//  Virtual Lossã®åŠ ç®—  //
 //////////////////////////
-void
+static void
 AddVirtualLoss(child_node_t *child, int current)
 {
 #if defined CPP11
-  atomic_fetch_add(&uct_node[current].move_count, VIRTUAL_LOSS);
-  atomic_fetch_add(&child->move_count, VIRTUAL_LOSS);
+	atomic_fetch_add(&uct_node[current].move_count, VIRTUAL_LOSS);
+	atomic_fetch_add(&child->move_count, VIRTUAL_LOSS);
 #else
-  uct_node[current].move_count += VIRTUAL_LOSS;
-  child->move_count += VIRTUAL_LOSS;
+	uct_node[current].move_count += VIRTUAL_LOSS;
+	child->move_count += VIRTUAL_LOSS;
 #endif
 }
 
 
 //////////////////////
-//  ’TõŒ‹‰Ê‚ÌXV  //
+//  æ¢ç´¢çµæœã®æ›´æ–°  //
 /////////////////////
-void
+static void
 UpdateResult(child_node_t *child, int result, int current)
 {
-  atomic_fetch_add(&uct_node[current].win, result);
-  atomic_fetch_add(&uct_node[current].move_count, 1 - VIRTUAL_LOSS);
-  atomic_fetch_add(&child->win, result);
-  atomic_fetch_add(&child->move_count, 1 - VIRTUAL_LOSS);
+	atomic_fetch_add(&uct_node[current].win, result);
+	atomic_fetch_add(&uct_node[current].move_count, 1 - VIRTUAL_LOSS);
+	atomic_fetch_add(&child->win, result);
+	atomic_fetch_add(&child->move_count, 1 - VIRTUAL_LOSS);
 }
 
 
 //////////////////////////
-//  ƒm[ƒh‚Ì•À‚Ñ‘Ö‚¦—p  //
+//  ãƒãƒ¼ãƒ‰ã®ä¸¦ã³æ›¿ãˆç”¨  //
 //////////////////////////
-int
+static int
 RateComp(const void *a, const void *b)
 {
-  rate_order_t *ro1 = (rate_order_t *)a;
-  rate_order_t *ro2 = (rate_order_t *)b;
-  if (ro1->rate < ro2->rate) {
-    return 1;
-  } else if (ro1->rate > ro2->rate) {
-    return -1;
-  } else {
-    return 0;
-  }
+	rate_order_t *ro1 = (rate_order_t *)a;
+	rate_order_t *ro2 = (rate_order_t *)b;
+	if (ro1->rate < ro2->rate) {
+		return 1;
+	}
+	else if (ro1->rate > ro2->rate) {
+		return -1;
+	}
+	else {
+		return 0;
+	}
 }
 
 
-///////////////////////////////////////////////////////
-//  UCB‚ªÅ‘å‚Æ‚È‚éqƒm[ƒh‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ•Ô‚·ŠÖ”  //
-///////////////////////////////////////////////////////
-int
+/////////////////////////////////////////////////////
+//  UCBãŒæœ€å¤§ã¨ãªã‚‹å­ãƒãƒ¼ãƒ‰ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’è¿”ã™é–¢æ•°  //
+/////////////////////////////////////////////////////
+static int
 SelectMaxUcbChild(int current, int color)
 {
-  int i;
-  child_node_t *uct_child = uct_node[current].child;
-  int child_num = uct_node[current].child_num;
-  int max_child = 0, sum = uct_node[current].move_count;
-  double p, max_value;
-  double ucb_value;
-  int max_index;
-  double max_rate;
-  double dynamic_parameter;
-  rate_order_t order[PURE_BOARD_MAX + 1];  
-  int pos;
-  int width;
-  double ucb_bonus_weight = bonus_weight * sqrt(bonus_equivalence / (sum + bonus_equivalence));
+	child_node_t *uct_child = uct_node[current].child;
+	const int child_num = uct_node[current].child_num;
+	int max_child = 0;
+	const int sum = uct_node[current].move_count;
+	double p, max_value;
+	double ucb_value;
+	int max_index;
+	double max_rate;
+	double dynamic_parameter;
+	rate_order_t order[PURE_BOARD_MAX + 1];
+	int pos;
+	int width;
+	const double ucb_bonus_weight = bonus_weight * sqrt(bonus_equivalence / (sum + bonus_equivalence));
 
-  // 128‰ñ‚²‚Æ‚ÉOwner‚ÆCriticality‚Åƒ\[ƒg‚µ’¼‚·  
-  if ((sum & 0x7f) == 0 && sum != 0) {
-    int o_index[UCT_CHILD_MAX], c_index[UCT_CHILD_MAX];
-    CalculateCriticalityIndex(&uct_node[current], uct_node[current].statistic, color, c_index);
-    CalculateOwnerIndex(&uct_node[current], uct_node[current].statistic, color, o_index);
-    for (i = 0; i < child_num; i++) {
-      pos = uct_child[i].pos;
-      dynamic_parameter = uct_owner[o_index[i]] + uct_criticality[c_index[i]];
-      order[i].rate = uct_child[i].rate + dynamic_parameter;
-      order[i].index = i;
-      uct_child[i].flag = false;
-    }
-    qsort(order, child_num, sizeof(rate_order_t), RateComp);
+	// 128å›ã”ã¨ã«Ownerã¨Criticalityã§ã‚½ãƒ¼ãƒˆã—ç›´ã™  
+	if ((sum & 0x7f) == 0 && sum != 0) {
+		int o_index[UCT_CHILD_MAX], c_index[UCT_CHILD_MAX];
+		CalculateCriticalityIndex(&uct_node[current], uct_node[current].statistic, color, c_index);
+		CalculateOwnerIndex(&uct_node[current], uct_node[current].statistic, color, o_index);
+		for (int i = 0; i < child_num; i++) {
+			pos = uct_child[i].pos;
+			if (pos == PASS) {
+				dynamic_parameter = 0.0;
+			}
+			else {
+				dynamic_parameter = uct_owner[o_index[i]] + uct_criticality[c_index[i]];
+			}
+			order[i].rate = uct_child[i].rate + dynamic_parameter;
+			order[i].index = i;
+			uct_child[i].flag = false;
+		}
+		qsort(order, child_num, sizeof(rate_order_t), RateComp);
 
-    // qƒm[ƒh‚Ì”‚Æ’Tõ•‚ÌÅ¬’l‚ğæ‚é
-    width = ((uct_node[current].width > child_num) ? child_num : uct_node[current].width);
+		// å­ãƒãƒ¼ãƒ‰ã®æ•°ã¨æ¢ç´¢å¹…ã®æœ€å°å€¤ã‚’å–ã‚‹
+		width = ((uct_node[current].width > child_num) ? child_num : uct_node[current].width);
 
-    // ’TõŒó•â‚Ìè‚ğ“WŠJ‚µ’¼‚·
-    for (i = 0; i < width; i++) {
-      uct_child[order[i].index].flag = true;
-    }
-  }
-  	
-  // Progressive Widening‚Ìè‡’l‚ğ’´‚¦‚½‚ç, 
-  // ƒŒ[ƒg‚ªÅ‘å‚Ìè‚ğ“Ç‚ŞŒó•â‚ğ1è’Ç‰Á
-  if (sum > pw[uct_node[current].width]) {
-    max_index = -1;
-    max_rate = 0;
-    for (i = 0; i < child_num; i++) {
-      if (uct_child[i].flag == false) {
-	pos = uct_child[i].pos;
-	dynamic_parameter = uct_owner[owner_index[pos]] + uct_criticality[criticality_index[pos]];
-	if (uct_child[i].rate + dynamic_parameter > max_rate) {
-	  max_index = i;
-	  max_rate = uct_child[i].rate + dynamic_parameter;
+		// æ¢ç´¢å€™è£œã®æ‰‹ã‚’å±•é–‹ã—ç›´ã™
+		for (int i = 0; i < width; i++) {
+			uct_child[order[i].index].flag = true;
+		}
 	}
-      }
-    }
-    if (max_index != -1) {
-      uct_child[max_index].flag = true;
-    }
-    uct_node[current].width++;  
-  }
 
-  max_value = -1;
-  max_child = 0;
+	// Progressive Wideningã®é–¾å€¤ã‚’è¶…ãˆãŸã‚‰, 
+	// ãƒ¬ãƒ¼ãƒˆãŒæœ€å¤§ã®æ‰‹ã‚’èª­ã‚€å€™è£œã‚’1æ‰‹è¿½åŠ 
+	if (sum > pw[uct_node[current].width]) {
+		max_index = -1;
+		max_rate = 0;
+		for (int i = 0; i < child_num; i++) {
+			if (uct_child[i].flag == false) {
+				pos = uct_child[i].pos;
+				dynamic_parameter = uct_owner[owner_index[pos]] + uct_criticality[criticality_index[pos]];
+				if (uct_child[i].rate + dynamic_parameter > max_rate) {
+					max_index = i;
+					max_rate = uct_child[i].rate + dynamic_parameter;
+				}
+			}
+		}
+		if (max_index != -1) {
+			uct_child[max_index].flag = true;
+		}
+		uct_node[current].width++;
+	}
 
-  // UCB’lÅ‘å‚Ìè‚ğ‹‚ß‚é  
-  for (i = 0; i < child_num; i++) {
-    if (uct_child[i].flag || uct_child[i].open) {
-      if (uct_child[i].move_count == 0) {
-	ucb_value = FPU;
-      } else {
-	double div, v;
-	// UCB1-TUNED value
-	p = (double)uct_child[i].win / uct_child[i].move_count;
-	div = log(sum) / uct_child[i].move_count;
-	v = p - p * p + sqrt(2.0 * div);
-	ucb_value = p + sqrt(div * ((0.25 < v) ? 0.25 : v));
+	max_value = -1;
+	max_child = 0;
 
-	// UCB Bonus
-	ucb_value += ucb_bonus_weight * uct_child[i].rate;
-      }
+	// UCBå€¤æœ€å¤§ã®æ‰‹ã‚’æ±‚ã‚ã‚‹  
+	for (int i = 0; i < child_num; i++) {
+		if (uct_child[i].flag || uct_child[i].open) {
+			if (uct_child[i].move_count == 0) {
+				ucb_value = FPU;
+			}
+			else {
+				double div, v;
+				// UCB1-TUNED value
+				p = (double)uct_child[i].win / uct_child[i].move_count;
+				div = log(sum) / uct_child[i].move_count;
+				v = p - p * p + sqrt(2.0 * div);
+				ucb_value = p + sqrt(div * ((0.25 < v) ? 0.25 : v));
 
-      if (ucb_value > max_value) {
-	max_value = ucb_value;
-	max_child = i;
-      }
-    }
-  }
+				// UCB Bonus
+				ucb_value += ucb_bonus_weight * uct_child[i].rate;
+			}
 
-  return max_child;
+			if (ucb_value > max_value) {
+				max_value = ucb_value;
+				max_child = i;
+			}
+		}
+	}
+
+	return max_child;
 }
 
 
 ///////////////////////////////////////////////////////////
-//  Owner‚âCriiticality‚ğŒvZ‚·‚é‚½‚ß‚Ìî•ñ‚ğ‹L˜^‚·‚éŠÖ”  //
+//  Ownerã‚„Criiticalityã‚’è¨ˆç®—ã™ã‚‹ãŸã‚ã®æƒ…å ±ã‚’è¨˜éŒ²ã™ã‚‹é–¢æ•°  //
 ///////////////////////////////////////////////////////////
-void
+static void
 Statistic(game_info_t *game, int winner)
 {
-  char *board = game->board;
-  int i, pos, color;
+	const char *board = game->board;
+	int pos, color;
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    color = board[pos];
-    if (color == S_EMPTY) color = territory[Pat3(game->pat, pos)];
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		color = board[pos];
+		if (color == S_EMPTY) color = territory[Pat3(game->pat, pos)];
 
-    std::atomic_fetch_add(&statistic[pos].colors[color], 1);
-    if (color == winner) {
-      std::atomic_fetch_add(&statistic[pos].colors[0], 1);
-    }
-  }
+		std::atomic_fetch_add(&statistic[pos].colors[color], 1);
+		if (color == winner) {
+			std::atomic_fetch_add(&statistic[pos].colors[0], 1);
+		}
+	}
 }
 
 
 ///////////////////////////////
-//  Šeƒm[ƒh‚Ì“Œvî•ñ‚ÌXV  //
+//  å„ãƒãƒ¼ãƒ‰ã®çµ±è¨ˆæƒ…å ±ã®æ›´æ–°  //
 ///////////////////////////////
-void
+static void
 UpdateNodeStatistic(game_info_t *game, int winner, statistic_t *node_statistic)
 {
-  char *board = game->board;
-  int i, pos, color;
+	const char *board = game->board;
+	int pos, color;
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    color = board[pos];
-    if (color == S_EMPTY) color = territory[Pat3(game->pat, pos)];
-    std::atomic_fetch_add(&node_statistic[pos].colors[color], 1);
-    if (color == winner) {
-      std::atomic_fetch_add(&node_statistic[pos].colors[0], 1);
-    }
-  }
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		color = board[pos];
+		if (color == S_EMPTY) color = territory[Pat3(game->pat, pos)];
+		std::atomic_fetch_add(&node_statistic[pos].colors[color], 1);
+		if (color == winner) {
+			std::atomic_fetch_add(&node_statistic[pos].colors[0], 1);
+		}
+	}
 }
 
 
 //////////////////////////////////
-//  Šeƒm[ƒh‚ÌCriticality‚ÌŒvZ  //
+//  å„ãƒãƒ¼ãƒ‰ã®Criticalityã®è¨ˆç®—  //
 //////////////////////////////////
-void
+static void
 CalculateCriticalityIndex(uct_node_t *node, statistic_t *node_statistic, int color, int *index)
 {
-  double win, lose;
-  int other = FLIP_COLOR(color);
-  int count = node->move_count;
-  int child_num = node->child_num;
-  int i, pos;
-  double tmp;
+	double win, lose;
+	const int other = FLIP_COLOR(color);
+	const int count = node->move_count;
+	const int child_num = node->child_num;
+	int pos;
+	double tmp;
 
-  win = (double)node->win / node->move_count;
-  lose = 1.0 - win;
+	win = (double)node->win / node->move_count;
+	lose = 1.0 - win;
 
-  index[0] = 0;
+	index[0] = 0;
 
-  for (i = 1; i < child_num; i++) {
-    pos = node->child[i].pos;
+	for (int i = 1; i < child_num; i++) {
+		pos = node->child[i].pos;
 
-    tmp = ((double)node_statistic[pos].colors[0] / count) -
-      ((((double)node_statistic[pos].colors[color] / count) * win)
-       + (((double)node_statistic[pos].colors[other] / count) * lose));
-    if (tmp < 0) tmp = 0;
-    index[i] = (int)(tmp * 40);
-    if (index[i] > criticality_max - 1) index[i] = criticality_max - 1;
-  }
+		tmp = ((double)node_statistic[pos].colors[0] / count) -
+			((((double)node_statistic[pos].colors[color] / count) * win)
+				+ (((double)node_statistic[pos].colors[other] / count) * lose));
+		if (tmp < 0) tmp = 0;
+		index[i] = (int)(tmp * 40);
+		if (index[i] > criticality_max - 1) index[i] = criticality_max - 1;
+	}
 }
 
 ////////////////////////////////////
-//  Criticality‚ÌŒvZ‚ğ‚·‚éŠÖ”   // 
+//  Criticalityã®è¨ˆç®—ã‚’ã™ã‚‹é–¢æ•°   // 
 ////////////////////////////////////
-void
+static void
 CalculateCriticality(int color)
 {
-  int i, pos;
-  double tmp;
-  int other = FLIP_COLOR(color);
-  double win, lose;
+	int pos;
+	double tmp;
+	const int other = FLIP_COLOR(color);
+	double win, lose;
 
-  win = (double)uct_node[current_root].win / uct_node[current_root].move_count;
-  lose = 1.0 - win;
+	win = (double)uct_node[current_root].win / uct_node[current_root].move_count;
+	lose = 1.0 - win;
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
 
-    tmp = ((float)statistic[pos].colors[0] / po_info.count) -
-      ((((float)statistic[pos].colors[color] / po_info.count)*win)
-       + (((float)statistic[pos].colors[other] / po_info.count)*lose));
-    criticality[pos] = tmp;
-    if (tmp < 0) tmp = 0;
-    criticality_index[pos] = (int)(tmp * 40);
-    if (criticality_index[pos] > criticality_max - 1) criticality_index[pos] = criticality_max - 1;
-  }
+		tmp = ((float)statistic[pos].colors[0] / po_info.count) -
+			((((float)statistic[pos].colors[color] / po_info.count)*win)
+				+ (((float)statistic[pos].colors[other] / po_info.count)*lose));
+		criticality[pos] = tmp;
+		if (tmp < 0) tmp = 0;
+		criticality_index[pos] = (int)(tmp * 40);
+		if (criticality_index[pos] > criticality_max - 1) criticality_index[pos] = criticality_max - 1;
+	}
 }
 
 
-
 //////////////////////////////
-//  Owner‚ÌŒvZ‚ğ‚·‚éŠÖ”   //
+//  Ownerã®è¨ˆç®—ã‚’ã™ã‚‹é–¢æ•°   //
 //////////////////////////////
-void
-CalculateOwnerIndex( uct_node_t *node, statistic_t *node_statistic, int color, int *index )
+static void
+CalculateOwnerIndex(uct_node_t *node, statistic_t *node_statistic, int color, int *index)
 {
-  int i, pos;
-  int count = node->move_count;
-  int child_num = node->child_num;
+	int pos;
+	const int count = node->move_count;
+	const int child_num = node->child_num;
 
-  index[0] = 0;
+	index[0] = 0;
 
-  for (i = 1; i < child_num; i++){
-    pos = node->child[i].pos;
-    index[i] = (int)((double)node_statistic[pos].colors[color] * 10.0 / count + 0.5);
-    if (index[i] > OWNER_MAX - 1) index[i] = OWNER_MAX - 1;
-    if (index[i] < 0)   index[pos] = 0;
-  }
+	for (int i = 1; i < child_num; i++) {
+		pos = node->child[i].pos;
+		index[i] = (int)((double)node_statistic[pos].colors[color] * 10.0 / count + 0.5);
+		if (index[i] > OWNER_MAX - 1) index[i] = OWNER_MAX - 1;
+		if (index[i] < 0)   index[pos] = 0;
+	}
 }
 
 
-
-
 //////////////////////////////
-//  Owner‚ÌŒvZ‚ğ‚·‚éŠÖ”   //
+//  Ownerã®è¨ˆç®—ã‚’ã™ã‚‹é–¢æ•°   //
 //////////////////////////////
-void
-CalculateOwner( int color, int count )
+static void
+CalculateOwner(int color, int count)
 {
-  int i, pos;
+	int pos;
 
-  for (i = 0; i < pure_board_max; i++){
-    pos = onboard_pos[i];
-    owner_index[pos] = (int)((double)statistic[pos].colors[color] * 10.0 / count + 0.5);
-    if (owner_index[pos] > OWNER_MAX - 1) owner_index[pos] = OWNER_MAX - 1;
-    if (owner_index[pos] < 0)   owner_index[pos] = 0;
-  }
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		owner_index[pos] = (int)((double)statistic[pos].colors[color] * 10.0 / count + 0.5);
+		if (owner_index[pos] > OWNER_MAX - 1) owner_index[pos] = OWNER_MAX - 1;
+		if (owner_index[pos] < 0)   owner_index[pos] = 0;
+	}
 }
 
 
 /////////////////////////////////
-//  Ÿ‚ÌƒvƒŒƒCƒAƒEƒg‰ñ”‚Ìİ’è  //
+//  æ¬¡ã®ãƒ—ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå›æ•°ã®è¨­å®š  //
 /////////////////////////////////
-void
-CalculateNextPlayouts( game_info_t *game, int color, double best_wp, double finish_time )
+static void
+CalculateNextPlayouts(game_info_t *game, int color, double best_wp, double finish_time)
 {
-  double po_per_sec;
+	double po_per_sec;
 
-  if (finish_time != 0.0) {
-    po_per_sec = po_info.count / finish_time;
-  } else {
-    po_per_sec = PLAYOUT_SPEED * threads;
-  }
+	if (finish_time != 0.0) {
+		po_per_sec = po_info.count / finish_time;
+	}
+	else {
+		po_per_sec = PLAYOUT_SPEED * threads;
+	}
 
-  // Ÿ‚Ì’Tõ‚Ì‚Ì’Tõ‰ñ”‚ğ‹‚ß‚é
-  if (mode == CONST_TIME_MODE) {
-    if (best_wp > 0.90) {
-      po_info.num = (int)(po_info.count / finish_time * const_thinking_time / 2);
-    } else {
-      po_info.num = (int)(po_info.count / finish_time * const_thinking_time);
-    }
-  } else if (mode == TIME_SETTING_MODE) {
-    if (pure_board_size < 11) {
-      remaining_time[color] -= finish_time;
-      time_limit = remaining_time[color] / TIME_RATE_9;
-      po_info.num = (int)(po_per_sec * time_limit);
-    } else if (pure_board_size < 16) {
-      remaining_time[color] -= finish_time;
-      time_limit = remaining_time[color] / (TIME_C_13 + ((TIME_MAXPLY_13 - (game->moves + 1) > 0) ? TIME_MAXPLY_13 - (game->moves + 1) : 0));
-      po_info.num = po_per_sec * time_limit;
-    } else {
-      remaining_time[color] -= finish_time;
-      time_limit = remaining_time[color] / (TIME_C_19 + ((TIME_MAXPLY_19 - (game->moves + 1) > 0) ? TIME_MAXPLY_19 - (game->moves + 1) : 0));
-      po_info.num = po_per_sec * time_limit;
-    }
-#if !defined (_WIN32)
-    time_limit *= threads;
-#endif
-  }
+	// æ¬¡ã®æ¢ç´¢ã®æ™‚ã®æ¢ç´¢å›æ•°ã‚’æ±‚ã‚ã‚‹
+	if (mode == CONST_TIME_MODE) {
+		if (best_wp > 0.90) {
+			po_info.num = (int)(po_info.count / finish_time * const_thinking_time / 2);
+		}
+		else {
+			po_info.num = (int)(po_info.count / finish_time * const_thinking_time);
+		}
+	}
+	else if (mode == TIME_SETTING_MODE ||
+		mode == TIME_SETTING_WITH_BYOYOMI_MODE) {
+		remaining_time[color] -= finish_time;
+		if (pure_board_size < 11) {
+			time_limit = remaining_time[color] / TIME_RATE_9;
+		}
+		else if (pure_board_size < 16) {
+			time_limit = remaining_time[color] / (TIME_C_13 + ((TIME_MAXPLY_13 - (game->moves + 1) > 0) ? TIME_MAXPLY_13 - (game->moves + 1) : 0));
+		}
+		else {
+			time_limit = remaining_time[color] / (TIME_C_19 + ((TIME_MAXPLY_19 - (game->moves + 1) > 0) ? TIME_MAXPLY_19 - (game->moves + 1) : 0));
+		}
+		if (mode == TIME_SETTING_WITH_BYOYOMI_MODE &&
+			time_limit < (const_thinking_time * 0.5)) {
+			time_limit = const_thinking_time * 0.5;
+		}
+		po_info.num = (int)(po_per_sec * time_limit);
+	}
 }
 
 
 /////////////////////////////////////
-//  UCTƒAƒ‹ƒSƒŠƒYƒ€‚É‚æ‚é‹Ç–Ê‰ğÍ  //
+//  UCTã‚¢ãƒ«ã‚´ãƒªã‚ºãƒ ã«ã‚ˆã‚‹å±€é¢è§£æ  //
 /////////////////////////////////////
 int
-UctAnalyze( game_info_t *game, int color )
+UctAnalyze(game_info_t *game, int color)
 {
-  int i, pos;
-  thread *handle[THREAD_MAX];
+	int pos;
+	thread *handle[THREAD_MAX];
 
-  // ’Tõî•ñ‚ğƒNƒŠƒA
-  memset(statistic, 0, sizeof(statistic_t) * board_max);  
-  memset(criticality_index, 0, sizeof(int) * board_max);  
-  memset(criticality, 0, sizeof(double) * board_max);     
-  po_info.count = 0;
+	// æ¢ç´¢æƒ…å ±ã‚’ã‚¯ãƒªã‚¢
+	memset(statistic, 0, sizeof(statistic_t) * board_max);
+	fill_n(criticality_index, board_max, 0);
+	for (int i = 0; i < board_max; i++) {
+		criticality[i] = 0.0;
+	}
+	po_info.count = 0;
 
-  ClearUctHash();
+	ClearUctHash();
 
-  current_root = ExpandRoot(game, color);
+	current_root = ExpandRoot(game, color);
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-  }
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+	}
 
-  po_info.halt = 10000;
+	po_info.halt = 10000;
 
-  for (i = 0; i < threads; i++) {
-    t_arg[i].thread_id = i;
-    t_arg[i].game = game;
-    t_arg[i].color = color;
-    handle[i] = new std::thread(ParallelUctSearch, &t_arg[i]);
-  }
+	for (int i = 0; i < threads; i++) {
+		t_arg[i].thread_id = i;
+		t_arg[i].game = game;
+		t_arg[i].color = color;
+		handle[i] = new std::thread(ParallelUctSearch, &t_arg[i]);
+	}
 
 
-  for (i = 0; i < threads; i++) {
-    handle[i]->join();
-    delete handle[i];
-  }
+	for (int i = 0; i < threads; i++) {
+		handle[i]->join();
+		delete handle[i];
+	}
 
-  int x, y, black = 0, white = 0;
-  double own;
+	int x, y, black = 0, white = 0;
+	double own;
 
-  for (y = board_start; y <= board_end; y++) {
-    for (x = board_start; x <= board_end; x++) {
-      pos = POS(x, y);
-      own = (double)statistic[pos].colors[S_BLACK] / uct_node[current_root].move_count;
-      if (own > 0.5) {
-	black++;
-      } else {
-	white++;
-      }
-    }
-  }
+	for (y = board_start; y <= board_end; y++) {
+		for (x = board_start; x <= board_end; x++) {
+			pos = POS(x, y);
+			own = (double)statistic[pos].colors[S_BLACK] / uct_node[current_root].move_count;
+			if (own > 0.5) {
+				black++;
+			}
+			else {
+				white++;
+			}
+		}
+	}
 
-  PrintOwner(&uct_node[current_root], color, owner);
+	PrintOwner(&uct_node[current_root], color, owner);
 
-  return black - white;
+	return black - white;
 }
 
 
 /////////////////////////
-//  Owner‚ğƒRƒs[‚·‚é  //
+//  Ownerã‚’ã‚³ãƒ”ãƒ¼ã™ã‚‹  //
 /////////////////////////
 void
-OwnerCopy( int *dest )
+OwnerCopy(int *dest)
 {
-  int i, pos;
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    dest[pos] = (int)((double)uct_node[current_root].statistic[pos].colors[my_color] / uct_node[current_root].move_count * 100);
-  }
+	int pos;
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		dest[pos] = (int)((double)uct_node[current_root].statistic[pos].colors[my_color] / uct_node[current_root].move_count * 100);
+	}
 }
 
 
 ///////////////////////////////
-//  Criticality‚ğƒRƒs[‚·‚é  //
+//  Criticalityã‚’ã‚³ãƒ”ãƒ¼ã™ã‚‹  //
 ///////////////////////////////
 void
-CopyCriticality( double *dest )
+CopyCriticality(double *dest)
 {
-  int i, pos;
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    dest[pos] = criticality[pos];
-  }
+	int pos;
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		dest[pos] = criticality[pos];
+	}
 }
 
 void
-CopyStatistic( statistic_t *dest )
+CopyStatistic(statistic_t *dest)
 {
-  memcpy(dest, statistic, sizeof(statistic_t)* BOARD_MAX); 
+	memcpy(dest, statistic, sizeof(statistic_t)* BOARD_MAX);
 }
 
 
 ////////////////////////////////////////////////////////
-//  UCTƒAƒ‹ƒSƒŠƒYƒ€‚É‚æ‚é’…è¶¬(KGS Clean Up Mode)  //
+//  UCTã‚¢ãƒ«ã‚´ãƒªã‚ºãƒ ã«ã‚ˆã‚‹ç€æ‰‹ç”Ÿæˆ(KGS Clean Up Mode)  //
 ////////////////////////////////////////////////////////
 int
-UctSearchGenmoveCleanUp( game_info_t *game, int color )
+UctSearchGenmoveCleanUp(game_info_t *game, int color)
 {
-  int i, pos;
-  clock_t begin_time;
-  double finish_time;
-  int select_index;
-  int max_count;
-  double wp;
-  int count;
-  child_node_t *uct_child;
-  thread *handle[THREAD_MAX];
+	int pos;
+	double finish_time;
+	int select_index;
+	int max_count;
+	double wp;
+	int count;
+	child_node_t *uct_child;
+	thread *handle[THREAD_MAX];
 
-  memset(statistic, 0, sizeof(statistic_t)* board_max); 
-  memset(criticality_index, 0, sizeof(int)* board_max); 
-  memset(criticality, 0, sizeof(double)* board_max);    
+	memset(statistic, 0, sizeof(statistic_t)* board_max);
+	fill_n(criticality_index, board_max, 0);
+	for (int i = 0; i < board_max; i++) {
+		criticality[i] = 0.0;
+	}
 
-  begin_time = clock();
+	begin_time = ray_clock::now();
 
-  po_info.count = 0;
+	po_info.count = 0;
 
-  current_root = ExpandRoot(game, color);
+	current_root = ExpandRoot(game, color);
 
-  if (uct_node[current_root].child_num <= 1) {
-    pos = PASS;
-    return pos;
-  }
+	if (uct_node[current_root].child_num <= 1) {
+		pos = PASS;
+		return pos;
+	}
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
-    owner[pos] = 50.0;
-  }
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
+		owner[pos] = 50.0;
+	}
 
-  po_info.halt = po_info.num;
+	po_info.halt = po_info.num;
 
-  DynamicKomi(game, &uct_node[current_root], color);
+	DynamicKomi(game, &uct_node[current_root], color);
 
-  for (i = 0; i < threads; i++) {
-    t_arg[i].thread_id = i;
-    t_arg[i].game = game;
-    t_arg[i].color = color;
-    handle[i] = new std::thread(ParallelUctSearch, &t_arg[i]);
-  }
+	for (int i = 0; i < threads; i++) {
+		t_arg[i].thread_id = i;
+		t_arg[i].game = game;
+		t_arg[i].color = color;
+		handle[i] = new std::thread(ParallelUctSearch, &t_arg[i]);
+	}
 
-  for (i = 0; i < threads; i++) {
-    handle[i]->join();
-    delete handle[i];
-  }
+	for (int i = 0; i < threads; i++) {
+		handle[i]->join();
+		delete handle[i];
+	}
 
-  uct_child = uct_node[current_root].child;
+	uct_child = uct_node[current_root].child;
 
-  select_index = 0;
-  max_count = uct_child[0].move_count;
+	select_index = 0;
+	max_count = uct_child[0].move_count;
 
-  for (i = 0; i < uct_node[current_root].child_num; i++){
-    if (uct_child[i].move_count > max_count) {
-      select_index = i;
-      max_count = uct_child[i].move_count;
-    }
-  }
+	for (int i = 0; i < uct_node[current_root].child_num; i++) {
+		if (uct_child[i].move_count > max_count) {
+			select_index = i;
+			max_count = uct_child[i].move_count;
+		}
+	}
 
-  finish_time = GetSpendTime(begin_time);
-#if !defined (_WIN32)
-  finish_time /= threads;
-#endif
+	finish_time = GetSpendTime(begin_time);
 
-  wp = (double)uct_node[current_root].win / uct_node[current_root].move_count;
+	wp = (double)uct_node[current_root].win / uct_node[current_root].move_count;
 
-  PrintPlayoutInformation(&uct_node[current_root], &po_info, finish_time, 0);
-  PrintOwner(&uct_node[current_root], color, owner);
+	PrintPlayoutInformation(&uct_node[current_root], &po_info, finish_time, 0);
+	PrintOwner(&uct_node[current_root], color, owner);
 
-  pos = uct_child[select_index].pos;
+	pos = uct_child[select_index].pos;
 
-  PrintBestSequence(game, uct_node, current_root, color);
+	PrintBestSequence(game, uct_node, current_root, color);
 
-  CalculateNextPlayouts(game, color, wp, finish_time);
+	CalculateNextPlayouts(game, color, wp, finish_time);
 
-  count = 0;
+	count = 0;
 
-  for (i = 0; i < pure_board_max; i++) {
-    pos = onboard_pos[i];
+	for (int i = 0; i < pure_board_max; i++) {
+		pos = onboard_pos[i];
 
-    if (owner[pos] >= 5 || owner[pos] <= 95) {
-      candidates[pos] = true;
-      count++;
-    } else {
-      candidates[pos] = false;
-    }
-  }
+		if (owner[pos] >= 5 || owner[pos] <= 95) {
+			candidates[pos] = true;
+			count++;
+		}
+		else {
+			candidates[pos] = false;
+		}
+	}
 
-  if (count == 0) pos = PASS;
-  else pos = uct_child[select_index].pos;
+	if (count == 0) pos = PASS;
+	else pos = uct_child[select_index].pos;
 
-  if ((double)uct_child[select_index].win / uct_child[select_index].move_count < RESIGN_THRESHOLD) {
-    pos = PASS;
-  }
+	if ((double)uct_child[select_index].win / uct_child[select_index].move_count < RESIGN_THRESHOLD) {
+		pos = PASS;
+	}
 
-  return pos;
+	return pos;
 }
 
 
+///////////////////////////////////
+//  å­ãƒãƒ¼ãƒ‰ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®åé›†  //
+///////////////////////////////////
+static void
+CorrectDescendentNodes(vector<int> &indexes, int index)
+{
+	child_node_t *uct_child = uct_node[index].child;
+	const int child_num = uct_node[index].child_num;
+
+	indexes.push_back(index);
+
+	for (int i = 0; i < child_num; i++) {
+		if (uct_child[i].index != NOT_EXPANDED) {
+			CorrectDescendentNodes(indexes, uct_child[i].index);
+		}
+	}
+}

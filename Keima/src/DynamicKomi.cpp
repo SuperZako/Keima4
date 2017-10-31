@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <iomanip>
 #include <iostream>
@@ -10,29 +10,46 @@
 using namespace std;
 
 
-// ’u‚«Î‚Ì”
-int handicap_num = 0;
-// ƒeƒXƒg‘Î‹Ç—p
-int const_handicap_num = 0;
+////////////
+//  å¤‰æ•°  //
+////////////
 
+// ç½®ãçŸ³ã®æ•°
+static int handicap_num = 0;
+
+// ãƒ†ã‚¹ãƒˆå¯¾å±€ç”¨
+static int const_handicap_num = 0;
+
+// Dynamic Komiã®ãƒ¢ãƒ¼ãƒ‰
 enum DYNAMIC_KOMI_MODE dk_mode = DK_OFF;
 
 
+////////////
+//  é–¢æ•°  //
+////////////
+
+// ã‚³ãƒŸã®å€¤ã‚’ç›´ç·šçš„ã«æ¸›ã‚‰ã™Dynamic Komi
+static void LinearHandicap( const game_info_t *game );
+
+// å‹ç‡ã«åŸºã¥ã„ã¦ã‚³ãƒŸã®å€¤ã‚’å¤‰æ›´ã™ã‚‹Dynamic Komi
+static void ValueSituational( const uct_node_t *root, const int color );
+
+
 ////////////////////////
-//  ’u‚«Î‚Ì”‚Ìİ’è  //
+//  ç½®ãçŸ³ã®æ•°ã®è¨­å®š  //
 ////////////////////////
 void
-SetConstHandicapNum( int num )
+SetConstHandicapNum( const int num )
 {
   const_handicap_num = num;
 }
 
 
 ////////////////////////
-//  ’u‚«Î‚Ì”‚Ìİ’è  //
+//  ç½®ãçŸ³ã®æ•°ã®è¨­å®š  //
 ////////////////////////
 void
-SetHandicapNum( int num )
+SetHandicapNum( const int num )
 {
   if (const_handicap_num == 0) {
     handicap_num = num;
@@ -54,7 +71,7 @@ SetHandicapNum( int num )
 //  Dynamic Komi  //
 ////////////////////
 void
-DynamicKomi( game_info_t *game, uct_node_t *root, int color )
+DynamicKomi( const game_info_t *game, const uct_node_t *root, const int color )
 {
   if (handicap_num != 0) {
     switch(dk_mode) {
@@ -71,26 +88,22 @@ DynamicKomi( game_info_t *game, uct_node_t *root, int color )
 }
 
 
-//////////////////////////////////////////////////////
-//  Å‰‚ÉƒRƒ~‚ğ‘½‚ß‚ÉŒ©Ï‚à‚Á‚Ä™X‚ÉŒ¸‚ç‚µ‚Ä‚¢‚­  //
-//////////////////////////////////////////////////////
-void
-LinearHandicap( game_info_t *game )
+////////////////////////////////////////////////////
+//  æœ€åˆã«ã‚³ãƒŸã‚’å¤šã‚ã«è¦‹ç©ã‚‚ã£ã¦å¾ã€…ã«æ¸›ã‚‰ã—ã¦ã„ã  //
+////////////////////////////////////////////////////
+static void
+LinearHandicap( const game_info_t *game )
 {
   double new_komi;
 
-  // è”‚ªi‚ñ‚¾‚çƒRƒ~‚ğ•Ï“®‚µ‚È‚¢
   if (game->moves > LINEAR_THRESHOLD - 15) {
-    dynamic_komi[0] = (double)handicap_num + 0.5;
-    dynamic_komi[S_BLACK] = (double)handicap_num + 1.5;
-    dynamic_komi[S_WHITE] = (double)handicap_num - 0.5;
-    return;
+  // æ‰‹æ•°ãŒé€²ã‚“ã ã‚‰ã‚³ãƒŸã‚’å¤‰å‹•ã—ãªã„
+    new_komi = (double)handicap_num + 0.5;
+  } else {
+    // æ–°ã—ã„ã‚³ãƒŸã®å€¤ã®è¨ˆç®—
+    new_komi = HANDICAP_WEIGHT * handicap_num * (1.0 - ((double)game->moves / LINEAR_THRESHOLD));
   }
-
-  // V‚µ‚¢ƒRƒ~‚Ì’l‚ÌŒvZ
-  new_komi = HANDICAP_WEIGHT * handicap_num * (1.0 - ((double)game->moves / LINEAR_THRESHOLD));
-
-  // V‚µ‚¢ƒRƒ~‚Ì’l‚ğ‘ã“ü
+  // æ–°ã—ã„ã‚³ãƒŸã®å€¤ã‚’ä»£å…¥
   dynamic_komi[0] = new_komi;
   dynamic_komi[S_BLACK] = new_komi + 1;
   dynamic_komi[S_WHITE] = new_komi - 1;
@@ -99,37 +112,31 @@ LinearHandicap( game_info_t *game )
 }
 
 
-
 //////////////////////////////////
-//  Ÿ—¦‚É‰‚¶‚ÄƒRƒ~‚Ì’l‚ğ•Ï“®  //
+//  å‹ç‡ã«å¿œã˜ã¦ã‚³ãƒŸã®å€¤ã‚’å¤‰å‹•  //
 //////////////////////////////////
-void
-ValueSituational( uct_node_t *root, int color )
+static void
+ValueSituational( const uct_node_t *root, const int color )
 {
   double win_rate = (double)root->win / root->move_count;
 
-  // Ÿ‚Ì’Tõ‚Ì‚ÌƒRƒ~‚ğ‹‚ß‚é
+  // æ¬¡ã®æ¢ç´¢ã®æ™‚ã®ã‚³ãƒŸã‚’æ±‚ã‚ã‚‹
   if (color == S_BLACK) {
     if (win_rate < RED) {
       dynamic_komi[0]--;
-      dynamic_komi[S_BLACK]--;
-      dynamic_komi[S_WHITE]--;
     } else if (win_rate > GREEN) {
       dynamic_komi[0]++;
-      dynamic_komi[S_BLACK]++;
-      dynamic_komi[S_WHITE]++;
     }
   } else if (color == S_WHITE) {
     if (win_rate < RED) {
       dynamic_komi[0]++;
-      dynamic_komi[S_BLACK]++;
-      dynamic_komi[S_WHITE]++;
     } else if (win_rate > GREEN) {
       dynamic_komi[0]--;
-      dynamic_komi[S_BLACK]--;
-      dynamic_komi[S_WHITE]--;
     }
   }
+
+  dynamic_komi[S_BLACK] = dynamic_komi[0] + 1.0;
+  dynamic_komi[S_WHITE] = dynamic_komi[0] - 1.0;
 
   PrintKomiValue();
 }

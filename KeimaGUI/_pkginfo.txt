@@ -1,1 +1,1 @@
-C:\Users\雅史\Documents\Visual Studio 2015\Projects\Keima\KeimaGUI\AppPackages\KeimaGUI_1.1.12.0\KeimaGUI_1.1.12.0_x64.appxbundle
+C:\Users\a6227\Desktop\Keima\KeimaGUI\bin\x64\Release\Upload\KeimaGUI_1.1.22.0\KeimaGUI_1.1.22.0_x64.appxbundle

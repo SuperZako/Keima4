@@ -9,7 +9,7 @@
     <div class="main">
         <div class="main-content">
             <div class="board" id="board"></div>
-            <p class="controls">
+            <!--<p class="controls">
                 <a href="#" onclick="move(0); return false;"><i class="fa fa-fast-backward"></i></a>
                 <a href="#" onclick="move(-10); return false;"><i class="fa fa-backward"></i></a>
                 <a href="#" onclick="move(-1); return false;"><i class="fa fa-step-backward"></i></a>
@@ -19,33 +19,80 @@
                 <a href="#" onclick="move(1000); return false;"><i class="fa fa-fast-forward"></i></a>
                 Variation: <strong id="variation">1</strong> / <strong id="variations">1</strong>
                 <a href="#" onclick="nextVariation(); return false;"><i title="variation" class="fa fa-arrows-v"></i></a>
-            </p>
+            </p>-->
         </div>
         <div class="aside">
             <div class="game-controls">
-                <div id="play" class="icon play-icon"></div>
-                <div class="icon cancel-icon"></div>
-                <div class="icon resign-icon"></div>
-                <div class="icon settings-icon"></div>
+                <!-- <div id="play" class="icon play-icon"></div>-->
+                <div id="pass" class="icon cancel-icon"></div>
+                <div id="resign" class="icon resign-icon"></div>
+                <div id="settings" class="icon settings-icon"></div>
             </div>
             <div class="black">
                 <div class="stone">
                 </div>
-                <div class="title">
+                <div id="black-name" class="title">
                     Player
+                </div>
+                <div id="black-captures" class="title">
+                    Captures: 0
                 </div>
             </div>
             <div class="white">
                 <div class="stone">
                 </div>
-                <div class="title">
+                <div id="white-name" class="title">
                     CPU
                 </div>
+                <div id="white-captures" class="title">
+                    Captures: 0
+                </div>
             </div>
-            <p>
-                Black captures: <strong id="black_captures"></strong><br>
-                White captures: <strong id="white_captures"></strong>
-            </p>
+        </div>
+    </div>
+
+    <div id="pass-dialog" class="dialog-overlay op-dark">
+        <div class="dialog pass-dialog">
+            <div id="pass-dialog-content" class="pass-dialog-content">
+            </div>
+            <hr />
+            <div class="buttons">
+                <button id="yes" class="button">YES</button>
+                <button id="no" class="button">NO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-dialog" class="dialog-overlay op-dark">
+        <div class="dialog settings-dialog">
+            <div class="settings-dialog-content">
+                Board Size :
+                <input type="radio" name="board-size" value="9"> 9x9
+                <input type="radio" name="board-size" value="19" checked> 19x19
+
+            </div>
+            <div class="settings-dialog-content">
+                Your Color :
+                <input type="radio" name="color" value="black" checked> Black
+                <input type="radio" name="color" value="white"> White
+
+            </div>
+            <hr />
+            <div class="buttons">
+                <button id="ok" class="button">OK</button>
+                <button id="cancel" class="button">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-dialog" class="dialog-overlay op-dark">
+        <div class="dialog result-dialog">
+            <div id="result-dialog-content" class="result-dialog-content">
+            </div>
+            <hr />
+            <div class="buttons">
+                <button id="result-dialog-ok" class="button">OK</button>
+            </div>
         </div>
     </div>
 

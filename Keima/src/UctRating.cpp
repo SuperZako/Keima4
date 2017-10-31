@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -19,34 +19,34 @@
 
 using namespace std;
 
-// ŠeíƒŒ[ƒg‚ªŠi”[‚³‚ê‚Ä‚¢‚éƒfƒBƒŒƒNƒgƒŠ‚Ö‚ÌƒpƒX
+// å„ç¨®ãƒ¬ãƒ¼ãƒˆãŒæ ¼ç´ã•ã‚Œã¦ã„ã‚‹ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã¸ã®ãƒ‘ã‚¹
 char uct_params_path[1024];
 
 // w_0
 double weight_zero;
-// íp“I“Á’¥‚ÌƒŒ[ƒg
+// æˆ¦è¡“çš„ç‰¹å¾´ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_tactical_features[UCT_TACTICAL_FEATURE_MAX];
-// ”Õã‚ÌˆÊ’u‚ÌƒŒ[ƒg
+// ç›¤ä¸Šã®ä½ç½®ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_pos_id[POS_ID_MAX];
-// ƒpƒX‚ÌƒŒ[ƒg
+// ãƒ‘ã‚¹ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_pass[UCT_PASS_MAX];
-// ’¼‘O‚Ì’…è‚©‚ç‚Ì‹——£‚ÌƒŒ[ƒg
+// ç›´å‰ã®ç€æ‰‹ã‹ã‚‰ã®è·é›¢ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_move_distance_1[MOVE_DISTANCE_MAX];
-// 2è‘O‚Ì’…è‚©‚ç‚Ì‹——£‚ÌƒŒ[ƒg
+// 2æ‰‹å‰ã®ç€æ‰‹ã‹ã‚‰ã®è·é›¢ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_move_distance_2[MOVE_DISTANCE_MAX];
-// 3x3ƒpƒ^[ƒ“‚ÌƒŒ[ƒg
+// 3x3ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_pat3[PAT3_LIMIT];
-// ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£2‚Ìƒpƒ^[ƒ“‚ÌƒŒ[ƒg
+// ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢2ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_md2[MD2_LIMIT];
-// ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£3‚Ìƒpƒ^[ƒ“‚ÌƒŒ[ƒg
+// ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢3ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_md3[LARGE_PAT_MAX];
-// ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£4‚Ìƒpƒ^[ƒ“‚ÌƒŒ[ƒg
+// ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢4ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_md4[LARGE_PAT_MAX];
-// ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£5‚Ìƒpƒ^[ƒ“‚ÌƒŒ[ƒg
+// ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢5ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒ¬ãƒ¼ãƒˆ
 latent_factor_t uct_md5[LARGE_PAT_MAX];
-// ƒI[ƒi[‚ÌƒŒ[ƒg
+// ã‚ªãƒ¼ãƒŠãƒ¼ã®ãƒ¬ãƒ¼ãƒˆ
 double uct_owner[OWNER_MAX];
-// ƒNƒŠƒeƒBƒJƒŠƒeƒB‚ÌƒŒ[ƒg
+// ã‚¯ãƒªãƒ†ã‚£ã‚«ãƒªãƒ†ã‚£ã®ãƒ¬ãƒ¼ãƒˆ
 double uct_criticality[CRITICALITY_MAX];
 
 index_hash_t md3_index[HASH_MAX];
@@ -59,8 +59,8 @@ int md2_index[MD2_MAX];
 game_info_t snapback_game;
 
 
-// íp“I“Á’¥‚Ìƒrƒbƒgƒ}ƒXƒN
-unsigned long long uct_mask[UCT_MASK_MAX] = {
+// æˆ¦è¡“çš„ç‰¹å¾´ã®ãƒ“ãƒƒãƒˆãƒã‚¹ã‚¯
+const unsigned long long uct_mask[UCT_MASK_MAX] = {
   0x0000000000000001, 0x0000000000000002, 0x0000000000000004, 0x0000000000000008,
   0x0000000000000010, 0x0000000000000020, 0x0000000000000040, 0x0000000000000080,
   0x0000000000000100, 0x0000000000000200, 0x0000000000000400, 0x0000000000000800,
@@ -80,7 +80,6 @@ unsigned long long uct_mask[UCT_MASK_MAX] = {
 };
 
 
-
 double criticality_init = CRITICALITY_INIT;
 double criticality_bias = CRITICALITY_BIAS;
 double owner_bias = OWNER_BIAS;
@@ -88,27 +87,27 @@ double owner_k = OWNER_K;
 
 unsigned long long atari_mask, capture_mask;
 
-//  ƒÁ“Ç‚İ‚İ
+//  Î³èª­ã¿è¾¼ã¿
 static void InputUCTParameter(void);
-//  “Ç‚İ‚İ 
+//  èª­ã¿è¾¼ã¿ 
 static void InputLatentFactor(const char *filename, latent_factor_t *lf, int n);
-//  “Ç‚İ‚İ Pat3
+//  èª­ã¿è¾¼ã¿ Pat3
 static void InputPat3(const char *filename, latent_factor_t *lf);
-//  “Ç‚İ‚İ MD2
+//  èª­ã¿è¾¼ã¿ MD2
 static void InputMD2(const char *filename, latent_factor_t *lf);
-//  “Ç‚İ‚İ
+//  èª­ã¿è¾¼ã¿
 static void InputLargePattern(const char *filename, latent_factor_t *lf, index_hash_t *pat_index);
 
 
 
 //////////////////////
-//  ƒÁ’l‚Ì‰Šúİ’è  //
+//  Î³å€¤ã®åˆæœŸè¨­å®š  //
 //////////////////////
 void
 InitializeUctRating()
 {
 	int i;
-	//  ƒÁ“Ç‚İ‚İ
+	//  Î³èª­ã¿è¾¼ã¿
 	InputUCTParameter();
 
 	for (i = UCT_SAVE_CAPTURE_1_1; i <= UCT_SEMEAI_CAPTURE; i++) {
@@ -122,7 +121,7 @@ InitializeUctRating()
 
 
 /////////////////////////////////////////
-//  ŒÄ‹z“_‚ª1‚Â‚Ì˜A‚É‘Î‚·‚é“Á’¥‚Ì”»’è  //
+//  å‘¼å¸ç‚¹ãŒ1ã¤ã®é€£ã«å¯¾ã™ã‚‹ç‰¹å¾´ã®åˆ¤å®š  //
 /////////////////////////////////////////
 void
 UctCheckFeaturesLib1(game_info_t *game, int color, int id, bool ladder, uct_features_t *uct_features)
@@ -131,10 +130,10 @@ UctCheckFeaturesLib1(game_info_t *game, int color, int id, bool ladder, uct_feat
 	int lib, neighbor;
 	unsigned long long *tactical_features1 = uct_features->tactical_features1;
 
-	// ŒÄ‹z“_‚ª1‚Â‚É‚È‚Á‚½˜A‚ÌŒÄ‹z“_‚ğæ‚èo‚·
+	// å‘¼å¸ç‚¹ãŒ1ã¤ã«ãªã£ãŸé€£ã®å‘¼å¸ç‚¹ã‚’å–ã‚Šå‡ºã™
 	lib = string[id].lib[0];
 
-	// ƒVƒ`ƒ‡ƒE‚ğ“¦‚°‚éè‚©‚Ç‚¤‚©‚Å“Á’¥‚ğ”»’è
+	// ã‚·ãƒãƒ§ã‚¦ã‚’é€ƒã’ã‚‹æ‰‹ã‹ã©ã†ã‹ã§ç‰¹å¾´ã‚’åˆ¤å®š
 	if (ladder) {
 		tactical_features1[lib] |= uct_mask[UCT_LADDER_EXTENSION];
 	}
@@ -150,8 +149,8 @@ UctCheckFeaturesLib1(game_info_t *game, int color, int id, bool ladder, uct_feat
 		}
 	}
 
-	// “G˜A‚ğæ‚é‚±‚Æ‚É‚æ‚Á‚Ä˜A‚ğ•‚¯‚éè‚Ì“Á’¥‚Ì”»’è
-	// ©•ª‚Ì˜A‚Ì‘å‚«‚³‚Æ“G‚Ì˜A‚Ì‘å‚«‚³‚Å“Á’¥‚ğ”»’è
+	// æ•µé€£ã‚’å–ã‚‹ã“ã¨ã«ã‚ˆã£ã¦é€£ã‚’åŠ©ã‘ã‚‹æ‰‹ã®ç‰¹å¾´ã®åˆ¤å®š
+	// è‡ªåˆ†ã®é€£ã®å¤§ãã•ã¨æ•µã®é€£ã®å¤§ãã•ã§ç‰¹å¾´ã‚’åˆ¤å®š
 	neighbor = string[id].neighbor[0];
 	while (neighbor != NEIGHBOR_END) {
 		if (string[neighbor].libs == 1) {
@@ -206,7 +205,7 @@ UctCheckFeaturesLib1(game_info_t *game, int color, int id, bool ladder, uct_feat
 
 
 /////////////////////////////////////////
-//  ŒÄ‹z“_‚ª2‚Â‚Ì˜A‚É‘Î‚·‚é“Á’¥‚Ì”»’è  //
+//  å‘¼å¸ç‚¹ãŒ2ã¤ã®é€£ã«å¯¾ã™ã‚‹ç‰¹å¾´ã®åˆ¤å®š  //
 /////////////////////////////////////////
 void
 UctCheckFeaturesLib2(game_info_t *game, int color, int id, uct_features_t *uct_features)
@@ -216,11 +215,11 @@ UctCheckFeaturesLib2(game_info_t *game, int color, int id, uct_features_t *uct_f
 	unsigned long long *tactical_features1 = uct_features->tactical_features1;
 	int lib1_state, lib2_state;
 
-	// ŒÄ‹z“_‚ª2‚Â‚É‚È‚Á‚½˜A‚ÌŒÄ‹z“_‚ğæ‚èo‚·
+	// å‘¼å¸ç‚¹ãŒ2ã¤ã«ãªã£ãŸé€£ã®å‘¼å¸ç‚¹ã‚’å–ã‚Šå‡ºã™
 	lib1 = string[id].lib[0];
 	lib2 = string[id].lib[lib1];
 
-	// ŒÄ‹z“_‚É‘Å‚Â“Á’¥
+	// å‘¼å¸ç‚¹ã«æ‰“ã¤ç‰¹å¾´
 	lib1_state = CheckLibertyState(game, lib1, color, id);
 	lib2_state = CheckLibertyState(game, lib2, color, id);
 	switch (lib1_state) {
@@ -250,11 +249,11 @@ UctCheckFeaturesLib2(game_info_t *game, int color, int id, uct_features_t *uct_f
 		break;
 	}
 
-	// ŒÄ‹z“_‚ª2‚Â‚É‚È‚Á‚½˜A‚ÌüˆÍ‚Ì“G˜A‚ğ’²‚×‚é
-	// 1. ŒÄ‹z“_‚ª1‚Â‚Ì“G˜A
-	// 2. ŒÄ‹z“_‚ª2‚Â‚Ì“G˜A
-	// ‚»‚ê‚¼‚ê‚É‘Î‚µ‚Ä, “Á’¥‚ğ”»’è‚·‚é
-	// ‚³‚ç‚É2.‚ÉŠÖ‚µ‚Ä‚Í1è‚Åæ‚ê‚é‚©‚Ç‚¤‚©‚àl—¶‚·‚é
+	// å‘¼å¸ç‚¹ãŒ2ã¤ã«ãªã£ãŸé€£ã®å‘¨å›²ã®æ•µé€£ã‚’èª¿ã¹ã‚‹
+	// 1. å‘¼å¸ç‚¹ãŒ1ã¤ã®æ•µé€£
+	// 2. å‘¼å¸ç‚¹ãŒ2ã¤ã®æ•µé€£
+	// ãã‚Œãã‚Œã«å¯¾ã—ã¦, ç‰¹å¾´ã‚’åˆ¤å®šã™ã‚‹
+	// ã•ã‚‰ã«2.ã«é–¢ã—ã¦ã¯1æ‰‹ã§å–ã‚Œã‚‹ã‹ã©ã†ã‹ã‚‚è€ƒæ…®ã™ã‚‹
 	neighbor = string[id].neighbor[0];
 	if (string[id].size <= 2) {
 		while (neighbor != NEIGHBOR_END) {
@@ -352,7 +351,7 @@ UctCheckFeaturesLib2(game_info_t *game, int color, int id, uct_features_t *uct_f
 
 
 /////////////////////////////////////////
-//  ŒÄ‹z“_‚ª3‚Â‚Ì˜A‚É‘Î‚·‚é“Á’¥‚Ì”»’è  //
+//  å‘¼å¸ç‚¹ãŒ3ã¤ã®é€£ã«å¯¾ã™ã‚‹ç‰¹å¾´ã®åˆ¤å®š  //
 /////////////////////////////////////////
 void
 UctCheckFeaturesLib3(game_info_t *game, int color, int id, uct_features_t *uct_features)
@@ -362,12 +361,12 @@ UctCheckFeaturesLib3(game_info_t *game, int color, int id, uct_features_t *uct_f
 	unsigned long long *tactical_features1 = uct_features->tactical_features1;
 	int lib1_state, lib2_state, lib3_state;
 
-	// ŒÄ‹z“_‚ª3‚Â‚É‚È‚Á‚½˜A‚ÌŒÄ‹z“_‚ğæ‚èo‚·
+	// å‘¼å¸ç‚¹ãŒ3ã¤ã«ãªã£ãŸé€£ã®å‘¼å¸ç‚¹ã‚’å–ã‚Šå‡ºã™
 	lib1 = string[id].lib[0];
 	lib2 = string[id].lib[lib1];
 	lib3 = string[id].lib[lib2];
 
-	// ŒÄ‹z“_‚É‘Å‚Â“Á’¥
+	// å‘¼å¸ç‚¹ã«æ‰“ã¤ç‰¹å¾´
 	lib1_state = CheckLibertyState(game, lib1, color, id);
 	lib2_state = CheckLibertyState(game, lib2, color, id);
 	lib3_state = CheckLibertyState(game, lib3, color, id);
@@ -412,12 +411,12 @@ UctCheckFeaturesLib3(game_info_t *game, int color, int id, uct_features_t *uct_f
 	}
 
 
-	// ŒÄ‹z“_‚ª3‚Â‚É‚È‚Á‚½˜A‚ÌüˆÍ‚Ì“G˜A‚ğ’²‚×‚é
-	// 1. ŒÄ‹z“_‚ª1‚Â‚Ì“G˜A
-	// 2. ŒÄ‹z“_‚ª2‚Â‚Ì“G˜A
-	// 3. ŒÄ‹z“_‚ª3‚Â‚Ì“G˜A
-	// ‚»‚ê‚¼‚ê‚É‘Î‚µ‚Ä, “Á’¥‚ğ”»’è‚·‚é
-	// ‚³‚ç‚É2‚ÉŠÖ‚µ‚Ä‚Í1è‚Åæ‚ê‚é‚©‚ğl—¶‚·‚é
+	// å‘¼å¸ç‚¹ãŒ3ã¤ã«ãªã£ãŸé€£ã®å‘¨å›²ã®æ•µé€£ã‚’èª¿ã¹ã‚‹
+	// 1. å‘¼å¸ç‚¹ãŒ1ã¤ã®æ•µé€£
+	// 2. å‘¼å¸ç‚¹ãŒ2ã¤ã®æ•µé€£
+	// 3. å‘¼å¸ç‚¹ãŒ3ã¤ã®æ•µé€£
+	// ãã‚Œãã‚Œã«å¯¾ã—ã¦, ç‰¹å¾´ã‚’åˆ¤å®šã™ã‚‹
+	// ã•ã‚‰ã«2ã«é–¢ã—ã¦ã¯1æ‰‹ã§å–ã‚Œã‚‹ã‹ã‚’è€ƒæ…®ã™ã‚‹
 
 	neighbor = string[id].neighbor[0];
 	if (string[id].size <= 2) {
@@ -547,7 +546,7 @@ UctCheckFeaturesLib3(game_info_t *game, int color, int id, uct_features_t *uct_f
 
 
 //////////////////
-//  “Á’¥‚Ì”»’è  //
+//  ç‰¹å¾´ã®åˆ¤å®š  //
 //////////////////
 void
 UctCheckFeatures(game_info_t *game, int color, uct_features_t *uct_features)
@@ -598,7 +597,7 @@ UctCheckFeatures(game_info_t *game, int color, uct_features_t *uct_features)
 
 
 ////////////////////////
-//  …‚ğ‰ğÁ‚·‚éƒgƒŠ  //
+//  åŠ«ã‚’è§£æ¶ˆã™ã‚‹ãƒˆãƒª  //
 ////////////////////////
 void
 UctCheckCaptureAfterKo(game_info_t *game, int color, uct_features_t *uct_features)
@@ -627,7 +626,7 @@ UctCheckCaptureAfterKo(game_info_t *game, int color, uct_features_t *uct_feature
 
 
 //////////////////
-//  ©ŒÈƒAƒ^ƒŠ  //
+//  è‡ªå·±ã‚¢ã‚¿ãƒª  //
 //////////////////
 bool
 UctCheckSelfAtari(game_info_t *game, int color, int pos, uct_features_t *uct_features)
@@ -657,10 +656,10 @@ UctCheckSelfAtari(game_info_t *game, int color, int pos, uct_features_t *uct_fea
 		}
 	}
 
-	//  ‹ó“_
+	//  ç©ºç‚¹
 	if (libs >= 2) return true;
 
-	//  ã‰º¶‰E‚ÌŠm”F
+	//  ä¸Šä¸‹å·¦å³ã®ç¢ºèª
 	for (i = 0; i < 4; i++) {
 		if (board[neighbor4[i]] == color) {
 			id = string_id[neighbor4[i]];
@@ -702,10 +701,10 @@ UctCheckSelfAtari(game_info_t *game, int color, int pos, uct_features_t *uct_fea
 		}
 	}
 
-	// ©ŒÈƒAƒ^ƒŠ‚Ì•ª—Ş
-	// 1.‘å‚«‚³‚ª2ˆÈ‰º‚Ì©ŒÈƒAƒ^ƒŠ
-	// 2.‘å‚«‚³‚ª6ˆÈ‰º‚ÅƒiƒJƒf‚ÌŒ`‚É‚È‚é©ŒÈƒAƒ^ƒŠ
-	// 3.‚»‚êˆÈŠO‚Ì©ŒÈƒAƒ^ƒŠ 
+	// è‡ªå·±ã‚¢ã‚¿ãƒªã®åˆ†é¡
+	// 1.å¤§ãã•ãŒ2ä»¥ä¸‹ã®è‡ªå·±ã‚¢ã‚¿ãƒª
+	// 2.å¤§ãã•ãŒ6ä»¥ä¸‹ã§ãƒŠã‚«ãƒ‡ã®å½¢ã«ãªã‚‹è‡ªå·±ã‚¢ã‚¿ãƒª
+	// 3.ãã‚Œä»¥å¤–ã®è‡ªå·±ã‚¢ã‚¿ãƒª 
 	if (size < 2) {
 		tactical_features1[pos] |= uct_mask[UCT_SELF_ATARI_SMALL];
 		flag = true;
@@ -729,7 +728,7 @@ UctCheckSelfAtari(game_info_t *game, int color, int pos, uct_features_t *uct_fea
 
 
 //////////////////
-//  ƒgƒŠ‚Ì”»’è  //
+//  ãƒˆãƒªã®åˆ¤å®š  //
 //////////////////
 void
 UctCheckCapture(game_info_t *game, int color, int pos, uct_features_t *uct_features)
@@ -774,7 +773,7 @@ UctCheckCapture(game_info_t *game, int color, int pos, uct_features_t *uct_featu
 
 
 ////////////////////
-//  ƒAƒ^ƒŠ‚Ì”»’è  //
+//  ã‚¢ã‚¿ãƒªã®åˆ¤å®š  //
 ////////////////////
 void
 UctCheckAtari(game_info_t *game, int color, int pos, uct_features_t *uct_features)
@@ -812,7 +811,7 @@ UctCheckAtari(game_info_t *game, int color, int pos, uct_features_t *uct_feature
 
 
 ////////////////
-//  …‚Ì‰ğÁ  //
+//  åŠ«ã®è§£æ¶ˆ  //
 ////////////////
 void
 UctCheckKoConnection(game_info_t *game, uct_features_t *uct_features)
@@ -826,7 +825,7 @@ UctCheckKoConnection(game_info_t *game, uct_features_t *uct_features)
 
 
 ////////////////////////////////
-// 2–Úæ‚ç‚ê‚½Œã‚ÌƒzƒEƒŠƒRƒ~  //
+// 2ç›®å–ã‚‰ã‚ŒãŸå¾Œã®ãƒ›ã‚¦ãƒªã‚³ãƒŸ  //
 ////////////////////////////////
 void
 UctCheckRemove2Stones(game_info_t *game, int color, uct_features_t *uct_features)
@@ -865,7 +864,6 @@ UctCheckRemove2Stones(game_info_t *game, int color, uct_features_t *uct_features
 		tactical_features1[rm1] |= uct_mask[UCT_THROW_IN_2];
 	}
 
-
 	for (i = 0, connect = 0; i < 4; i++) {
 		if ((game->board[rm2 + cross[i]] & color) == color) {
 			connect++;
@@ -879,7 +877,7 @@ UctCheckRemove2Stones(game_info_t *game, int color, uct_features_t *uct_features
 
 
 /////////////////////////////
-//  3–Ú”²‚©‚ê‚½Œã‚ÌƒiƒJƒf  //
+//  3ç›®æŠœã‹ã‚ŒãŸå¾Œã®ãƒŠã‚«ãƒ‡  //
 /////////////////////////////
 void
 UctCheckRemove3Stones(game_info_t *game, int color, uct_features_t *uct_features)
@@ -909,7 +907,7 @@ UctCheckRemove3Stones(game_info_t *game, int color, uct_features_t *uct_features
 
 
 //////////////////////////////
-//  ƒPƒCƒ}‚ÌƒcƒPƒRƒV‚Ì”»’è  //
+//  ã‚±ã‚¤ãƒã®ãƒ„ã‚±ã‚³ã‚·ã®åˆ¤å®š  //
 //////////////////////////////
 void
 UctCheckKeimaTsukekoshi(game_info_t *game, int color, int pos, uct_features_t *uct_features)
@@ -936,7 +934,6 @@ UctCheckKeimaTsukekoshi(game_info_t *game, int color, int pos, uct_features_t *u
 	opponent_pos[5] = board_size - 1;
 	opponent_pos[6] = board_size;
 	opponent_pos[7] = board_size + 1;
-
 
 	// Pattern No.1
 	// ?O+?
@@ -1053,7 +1050,7 @@ UctCheckKeimaTsukekoshi(game_info_t *game, int color, int pos, uct_features_t *u
 
 
 //////////////////////
-//  —¼ƒPƒCƒ}‚Ì”»’è  //
+//  ä¸¡ã‚±ã‚¤ãƒã®åˆ¤å®š  //
 //////////////////////
 void
 UctCheckDoubleKeima(game_info_t *game, int color, int pos, uct_features_t *uct_features)
@@ -1063,7 +1060,7 @@ UctCheckDoubleKeima(game_info_t *game, int color, int pos, uct_features_t *uct_f
 	// +++X+++
 	// +O+++O+
 	// ++O+O++
-	// O‚Ì‚¤‚¿©•ª‚Æ‘Šè‚ÌÎ‚ª1ŒÂ‚¸‚ÂˆÈã‚ ‚é‚Ì“Á’¥
+	// Oã®ã†ã¡è‡ªåˆ†ã¨ç›¸æ‰‹ã®çŸ³ãŒ1å€‹ãšã¤ä»¥ä¸Šã‚ã‚‹æ™‚ã®ç‰¹å¾´
 	char *board = game->board;
 	int other = FLIP_COLOR(color);
 	int keima_pos[8];
@@ -1096,39 +1093,42 @@ UctCheckDoubleKeima(game_info_t *game, int color, int pos, uct_features_t *uct_f
 
 
 ////////////////////
-//  ƒEƒbƒeƒKƒGƒV  //
+//  ã‚¦ãƒƒãƒ†ã‚¬ã‚¨ã‚·  //
 ////////////////////
 void
 UctCheckSnapBack(game_info_t *game, int color, int pos, uct_features_t *uct_features)
 {
-	string_t *string = snapback_game.string;
-	int *string_id = snapback_game.string_id;
-	char *board = snapback_game.board;
-	int id, capturable_pos, lib;
-	bool put = false;
+	const string_t *string = game->string;
+	const int *string_id = game->string_id;
+	const char *board = game->board;
 	int other = FLIP_COLOR(color);
 	unsigned long long *tactical_features1 = uct_features->tactical_features1;
 	int i, neighbor4[4];
 
 	GetNeighbor4(neighbor4, pos);
 
-
 	for (i = 0; i < 4; i++) {
 		if (board[neighbor4[i]] == other) {
-			id = string_id[neighbor4[i]];
-			if ((!put && string[id].libs == 2) ||
-				(put && string[id].libs == 1)) {
-				if (!put) {
-					CopyGame(&snapback_game, game);
-					PutStone(&snapback_game, pos, color);
-					put = true;
-				}
-				lib = snapback_game.string[id].lib[0];
-				capturable_pos = CapturableCandidate(&snapback_game, id);
-				if (lib == capturable_pos) {
-					tactical_features1[pos] |= uct_mask[UCT_SNAPBACK];
-					return;
-				}
+			int id = string_id[neighbor4[i]];
+
+			game_info_t *check_game;
+			if (string[id].libs == 1) {
+				check_game = game;
+			}
+			else if (string[id].libs == 2) {
+				CopyGame(&snapback_game, game);
+				PutStone(&snapback_game, pos, color);
+				check_game = &snapback_game;
+			}
+			else {
+				continue;
+			}
+			int id2 = check_game->string_id[neighbor4[i]];
+			int lib = check_game->string[id2].lib[0];
+			int capturable_pos = CapturableCandidate(check_game, id2);
+			if (lib == capturable_pos) {
+				tactical_features1[pos] |= uct_mask[UCT_SNAPBACK];
+				return;
 			}
 		}
 	}
@@ -1138,7 +1138,7 @@ UctCheckSnapBack(game_info_t *game, int color, int pos, uct_features_t *uct_feat
 double
 CalculateLFRScore(game_info_t *game, int pos, int index[3], uct_features_t *uct_features)
 {
-	struct pattern *pat = game->pat;
+	pattern_t *pat = game->pat;
 	int pm1 = PASS, pm2 = PASS;
 	int moves = game->moves;
 	int i, j, f, dis1 = -1, dis2 = -1;
@@ -1152,7 +1152,7 @@ CalculateLFRScore(game_info_t *game, int pos, int index[3], uct_features_t *uct_
 	if (moves > 1) pm1 = game->record[moves - 1].pos;
 	if (moves > 2) pm2 = game->record[moves - 2].pos;
 
-	// ƒpƒX‚Ì‚Ì•ªŠò
+	// ãƒ‘ã‚¹ã®æ™‚ã®åˆ†å²
 	if (pos == PASS) {
 		if (moves > 1 && pm1 == PASS) {
 			score += uct_pass[UCT_PASS_AFTER_PASS].w;
@@ -1180,23 +1180,23 @@ CalculateLFRScore(game_info_t *game, int pos, int index[3], uct_features_t *uct_
 	pat3 = pat3_index[Pat3(pat, pos)];
 	md2 = md2_index[MD2(pat, pos)];
 
-	// “Á’¥‚ğ
+	// ç‰¹å¾´ã‚’
 	for (i = 0; i < UCT_TACTICAL_FEATURE_MAX; i++) {
 		if ((tactical_features1[pos] & uct_mask[i]) != 0) {
 			all_feature[feature_num++] = &uct_tactical_features[i];
 		}
 	}
-	// ”Õã‚ÌˆÊ’u
+	// ç›¤ä¸Šã®ä½ç½®
 	all_feature[feature_num++] = &uct_pos_id[board_pos_id[pos]];
-	// 1è‘O‚©‚ç‚Ì‹——£
+	// 1æ‰‹å‰ã‹ã‚‰ã®è·é›¢
 	if (dis1 != -1) {
 		all_feature[feature_num++] = &uct_move_distance_1[dis1];
 	}
-	// 2è‘O‚©‚ç‚Ì‹——£
+	// 2æ‰‹å‰ã‹ã‚‰ã®è·é›¢
 	if (dis2 != -1) {
 		all_feature[feature_num++] = &uct_move_distance_2[dis2];
 	}
-	// ƒpƒ^[ƒ“
+	// ãƒ‘ã‚¿ãƒ¼ãƒ³
 	if (index[2] != -1) {
 		all_feature[feature_num++] = &uct_md5[index[2]];
 	}
@@ -1213,12 +1213,12 @@ CalculateLFRScore(game_info_t *game, int pos, int index[3], uct_features_t *uct_
 		all_feature[feature_num++] = &uct_pat3[pat3];
 	}
 
-	// w‚Ì‘«‚µZ
+	// wã®è¶³ã—ç®—
 	for (i = 0; i < feature_num; i++) {
 		score += all_feature[i]->w;
 	}
 
-	// v‚ÌŒvZ
+	// vã®è¨ˆç®—
 	for (f = 0; f < LFR_DIMENSION; f++) {
 		for (i = 0; i < feature_num; i++) {
 			tmp_score = 0.0;
@@ -1234,7 +1234,7 @@ CalculateLFRScore(game_info_t *game, int pos, int index[3], uct_features_t *uct_
 
 
 //////////////////////////////////////////
-//  ’…è—\‘z‚Ì¸“x‚ğŠm”F‚·‚é‚½‚ß‚ÌŠÖ”  //
+//  ç€æ‰‹äºˆæƒ³ã®ç²¾åº¦ã‚’ç¢ºèªã™ã‚‹ãŸã‚ã®é–¢æ•°  //
 //////////////////////////////////////////
 void
 AnalyzeUctRating(game_info_t *game, int color, double rate[])
@@ -1284,9 +1284,11 @@ AnalyzeUctRating(game_info_t *game, int color, double rate[])
 }
 
 //////////////////
-//  ƒÁ“Ç‚İ‚İ  //
+//  Î³èª­ã¿è¾¼ã¿  //
 //////////////////
-void InputUCTParameter(void) {
+void
+InputUCTParameter(void)
+{
 	string uct_parameters_path = uct_params_path;
 	string path;
 
@@ -1301,43 +1303,43 @@ void InputUCTParameter(void) {
 	//  W_0
 	InputTxtDBL(path.c_str(), &weight_zero, 1);
 
-	//  íp“I“Á’¥
+	//  æˆ¦è¡“çš„ç‰¹å¾´
 	path = uct_parameters_path + "TacticalFeature.txt";
 	InputLatentFactor(path.c_str(), uct_tactical_features, UCT_TACTICAL_FEATURE_MAX);
 
-	// ”Õã‚ÌˆÊ’u
+	// ç›¤ä¸Šã®ä½ç½®
 	path = uct_parameters_path + "PosID.txt";
 	InputLatentFactor(path.c_str(), uct_pos_id, POS_ID_MAX);
 
-	// ƒpƒX
+	// ãƒ‘ã‚¹
 	path = uct_parameters_path + "Pass.txt";
 	InputLatentFactor(path.c_str(), uct_pass, UCT_PASS_MAX);
 
-	//  ’¼‘O‚Ìè‚Æ‚Ì‹——£
+	//  ç›´å‰ã®æ‰‹ã¨ã®è·é›¢
 	path = uct_parameters_path + "MoveDistance1.txt";
 	InputLatentFactor(path.c_str(), uct_move_distance_1, MOVE_DISTANCE_MAX);
 
-	//  2è‘O‚Ìè‚Æ‚Ì‹——£
+	//  2æ‰‹å‰ã®æ‰‹ã¨ã®è·é›¢
 	path = uct_parameters_path + "MoveDistance2.txt";
 	InputLatentFactor(path.c_str(), uct_move_distance_2, MOVE_DISTANCE_MAX);
 
-	//  3x3ƒpƒ^[ƒ“
+	//  3x3ãƒ‘ã‚¿ãƒ¼ãƒ³
 	path = uct_parameters_path + "Pat3.txt";
 	InputPat3(path.c_str(), uct_pat3);
 
-	//  ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£2‚Ìƒpƒ^[ƒ“
+	//  ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢2ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
 	path = uct_parameters_path + "MD2.txt";
 	InputMD2(path.c_str(), uct_md2);
 
-	//  ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£3‚Ìƒpƒ^[ƒ“
+	//  ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢3ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
 	path = uct_parameters_path + "MD3.txt";
 	InputLargePattern(path.c_str(), uct_md3, md3_index);
 
-	//  ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£4‚Ìƒpƒ^[ƒ“
+	//  ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢4ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
 	path = uct_parameters_path + "MD4.txt";
 	InputLargePattern(path.c_str(), uct_md4, md4_index);
 
-	//  ƒ}ƒ“ƒnƒbƒ^ƒ“‹——£5‚Ìƒpƒ^[ƒ“
+	//  ãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢5ã®ãƒ‘ã‚¿ãƒ¼ãƒ³
 	path = uct_parameters_path + "MD5.txt";
 	InputLargePattern(path.c_str(), uct_md5, md5_index);
 
@@ -1353,32 +1355,18 @@ void InputUCTParameter(void) {
 }
 
 ///////////////////////////
-//  ƒÁ“Ç‚İ‚İ ’…è‹——£  //
+//  Î³èª­ã¿è¾¼ã¿ ç€æ‰‹è·é›¢  //
 ///////////////////////////
 static void InputLatentFactor(const char *filename, latent_factor_t *lf, int n)
 {
-	FILE *fp;
+	FILE *fp = nullptr;
 	int i, j;
 
 #if defined (_WIN32)
+	errno_t err;
 
-	auto char_str = filename;// "Char string";
-	std::string s_str = std::string(char_str);
-	std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
-	const wchar_t* w_char = wid_str.c_str();
-	Platform::String^ p_string = ref new Platform::String(w_char);
-
-	Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
-	Windows::Storage::StorageFolder^ installedLocation = package->InstalledLocation;
-	CREATEFILE2_EXTENDED_PARAMETERS pCreateExParams = { 0 };
-	auto file = installedLocation->Path + p_string;
-
-	auto err = _wfopen_s(&fp, file->Data(), L"r");
-
-	//errno_t err;
-
-	//err = fopen_s(&fp, filename, "r");
-	if (err != 0) {
+	fp = fileOpen(filename);//fopen_s(&fp, filename, "r");
+	if (/*err != 0*/fp == nullptr) {
 		cerr << "can not open -" << filename << "-" << endl;
 	}
 	for (i = 0; i < n; i++) {
@@ -1415,12 +1403,12 @@ static void InputLatentFactor(const char *filename, latent_factor_t *lf, int n)
 
 
 //////////////////////
-//  ƒÁ“Ç‚İ‚İ Pat3  //
+//  Î³èª­ã¿è¾¼ã¿ Pat3  //
 //////////////////////
 static void
 InputPat3(const char *filename, latent_factor_t *lf)
 {
-	FILE *fp;
+	FILE *fp = nullptr;
 	int i, idx = 0;
 	double weight;
 	unsigned int pat3, pat3_transp16[16];
@@ -1440,24 +1428,10 @@ InputPat3(const char *filename, latent_factor_t *lf)
 	}
 
 #if defined (_WIN32)
+	errno_t err;
 
-	auto char_str = filename;// "Char string";
-	std::string s_str = std::string(char_str);
-	std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
-	const wchar_t* w_char = wid_str.c_str();
-	Platform::String^ p_string = ref new Platform::String(w_char);
-
-	Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
-	Windows::Storage::StorageFolder^ installedLocation = package->InstalledLocation;
-	CREATEFILE2_EXTENDED_PARAMETERS pCreateExParams = { 0 };
-	auto file = installedLocation->Path + p_string;
-
-	auto err = _wfopen_s(&fp, file->Data(), L"r");
-
-	//errno_t err;
-
-	//err = fopen_s(&fp, filename, "r");
-	if (err != 0) {
+	fp = fileOpen(filename);//fopen_s(&fp, filename, "r");
+	if (/*err != 0*/fp == nullptr) {
 		cerr << "can not open -" << filename << "-" << endl;
 		exit(1);
 	}
@@ -1499,12 +1473,12 @@ InputPat3(const char *filename, latent_factor_t *lf)
 }
 
 //////////////////////
-//  ƒÁ“Ç‚İ‚İ MD2  //
+//  Î³èª­ã¿è¾¼ã¿ MD2  //
 //////////////////////
 static void
 InputMD2(const char *filename, latent_factor_t *lf)
 {
-	FILE *fp;
+	FILE *fp = nullptr;
 	int i;
 	int index, idx = 0;
 	double weight;
@@ -1525,23 +1499,10 @@ InputMD2(const char *filename, latent_factor_t *lf)
 	}
 
 #if defined (_WIN32)
-	auto char_str = filename;// "Char string";
-	std::string s_str = std::string(char_str);
-	std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
-	const wchar_t* w_char = wid_str.c_str();
-	Platform::String^ p_string = ref new Platform::String(w_char);
+	errno_t err;
 
-	Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
-	Windows::Storage::StorageFolder^ installedLocation = package->InstalledLocation;
-	CREATEFILE2_EXTENDED_PARAMETERS pCreateExParams = { 0 };
-	auto file = installedLocation->Path + p_string;
-
-	auto err = _wfopen_s(&fp, file->Data(), L"r");
-
-	//errno_t err;
-
-	//err = fopen_s(&fp, filename, "r");
-	if (err != 0) {
+	fp = fileOpen(filename);//fopen_s(&fp, filename, "r");
+	if (/*err != 0*/fp == nullptr) {
 		cerr << "can not open -" << filename << "-" << endl;
 	}
 	while (fscanf_s(fp, "%d%lf", &index, &weight) != EOF) {
@@ -1572,21 +1533,12 @@ InputMD2(const char *filename, latent_factor_t *lf)
 #endif
 }
 
-#pragma warning(disable : 4996)  
-static wchar_t* charToWChar(const char* text)
-{
-	const size_t size = strlen(text) + 1;
-	wchar_t* wText = new wchar_t[size];
-	mbstowcs(wText, text, size);
-	return wText;
-}
 
-
-//  “Ç‚İ‚İ
+//  èª­ã¿è¾¼ã¿
 static void
 InputLargePattern(const char *filename, latent_factor_t *lf, index_hash_t *pat_index)
 {
-	FILE *fp;
+	FILE *fp = nullptr;
 	int i;
 	int index, idx = 0;
 	unsigned long long hash;
@@ -1598,18 +1550,10 @@ InputLargePattern(const char *filename, latent_factor_t *lf, index_hash_t *pat_i
 	}
 
 #if defined (_WIN32)
-	auto temp = charToWChar(filename);
-	Platform::String^ p_string = ref new Platform::String(temp);
+	errno_t err;
 
-	Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
-	Windows::Storage::StorageFolder^ installedLocation = package->InstalledLocation;
-	auto file = installedLocation->Path + p_string;
-	auto err = _wfopen_s(&fp, file->Data(), L"r");
-
-	//errno_t err;
-
-	//err = fopen_s(&fp, filename, "r");
-	if (err != 0) {
+	fp = fileOpen(filename);//fopen_s(&fp, filename, "r");
+	if (/*err != 0*/fp == nullptr) {
 		cerr << "can not open -" << filename << "-" << endl;
 		exit(1);
 	}
@@ -1625,7 +1569,6 @@ InputLargePattern(const char *filename, latent_factor_t *lf, index_hash_t *pat_i
 		}
 		idx++;
 	}
-	delete temp;
 #else
 	fp = fopen(filename, "r");
 	if (fp == NULL) {

@@ -74,7 +74,8 @@ namespace JGO {
          * @param {string} s The coordinate string.
          */
         getCoordinate(s: string) {
-            return new Coordinate(COORDINATES.indexOf(s.toUpperCase().substr(0, 1)), this.height - parseInt(s.substr(1)));
+            // return new Coordinate(COORDINATES.indexOf(s.toUpperCase().substr(0, 1)), this.height - parseInt(s.substr(1)));
+            return new Coordinate(COORDINATES.indexOf(s.toUpperCase().substr(0, 1)), parseInt(s.substr(1)));
         }
 
         /**
@@ -173,7 +174,7 @@ namespace JGO {
          * @param {Object} c A Coordinate or an Array of them.
          * @returns {Object} Type or array of types.
          */
-        getType(c: Coordinate | Coordinate[]) {
+        public getType(c: Coordinate | Coordinate[]) {
             var ret;
 
             if (c instanceof Coordinate) {

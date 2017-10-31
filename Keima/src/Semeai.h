@@ -1,40 +1,43 @@
-#ifndef _SEMEAI_H_
+ï»¿#ifndef _SEMEAI_H_
 #define _SEMEAI_H_
 
 #include "GoBoard.h"
 
 enum LIBERTY_STATE {
-	L_DECREASE,
-	L_EVEN,
-	L_INCREASE,
+  L_DECREASE,
+  L_EVEN,
+  L_INCREASE,
 };
 
 
-//  1è‚Åæ‚ê‚éƒAƒ^ƒŠ‚Ì”»’è
-bool IsCapturableAtari(game_info_t *game, int pos, int color, int opponent_pos);
+//  1æ‰‹ã§å–ã‚Œã‚‹ã‚¢ã‚¿ãƒªã®åˆ¤å®š
+bool IsCapturableAtari( const game_info_t *game, const int pos, const int color, const int opponent_pos );
 
-//  ƒIƒCƒIƒgƒV‚ÌŠm”F
-int CheckOiotoshi(game_info_t *game, int pos, int color, int opponent_pos);
+//  ã‚ªã‚¤ã‚ªãƒˆã‚·ã®ç¢ºèª
+int CheckOiotoshi( const game_info_t *game, const int pos, const int color, const int opponent_pos );
 
-//  ƒEƒbƒeƒKƒGƒV—p‚Ì”»’è
-int CapturableCandidate(game_info_t *game, int id);
+//  ã‚¦ãƒƒãƒ†ã‚¬ã‚¨ã‚·ç”¨ã®åˆ¤å®š
+int CapturableCandidate( const game_info_t *game, const int id );
 
-//  ‚·‚®‚É•ß‚Ü‚éè‚©‚Ç‚¤‚©‚ğ”»’è  
-bool IsDeadlyExtension(game_info_t *game, int color, int id);
+//  ã™ãã«æ•ã¾ã‚‹æ‰‹ã‹ã©ã†ã‹ã‚’åˆ¤å®š  
+bool IsDeadlyExtension( const game_info_t *game, const int color, const int id );
 
-//  —×Ú‚·‚é“G˜A‚ªæ‚ê‚é‚©‚ğ”»’è  
-bool IsCapturableNeighborNone(game_info_t *game, int id);
+//  å‘¼å¸ç‚¹ãŒã©ã®ã‚ˆã†ã«å¤‰åŒ–ã™ã‚‹ã‹ã‚’ç¢ºèª
+int CheckLibertyState( const game_info_t *game, const int pos, const int color, const int id );
 
-//  ŒÄ‹z“_‚ª‚Ç‚Ì‚æ‚¤‚É•Ï‰»‚·‚é‚©‚ğŠm”F
-int CheckLibertyState(game_info_t *game, int pos, int color, int id);
+//  è‡ªå·±ã‚¢ã‚¿ãƒªã«ãªã‚‹ãƒˆãƒªã‹ã©ã†ã‹åˆ¤å®š
+bool IsSelfAtariCapture( const game_info_t *game, const int pos, const int color, const int id );
 
-//  ©ŒÈƒAƒ^ƒŠ‚É‚È‚éƒgƒŠ‚©‚Ç‚¤‚©”»’è
-bool IsSelfAtariCapture(game_info_t *game, int pos, int color, int id);
+//  1æ‰‹ã§å–ã‚Œã‚‹ã‚¢ã‚¿ãƒª(ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ç”¨)
+bool IsCapturableAtariForSimulation( const game_info_t *game, const int pos, const int color, const int id );
 
-//  1è‚Åæ‚ê‚éƒAƒ^ƒŠ(ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“—p)
-bool IsCapturableAtariForSimulation(game_info_t *game, int pos, int color, int id);
+//  è‡ªå·±ã‚¢ã‚¿ãƒªã«ãªã‚‹ãƒˆãƒªã‹ã©ã†ã‹åˆ¤å®š
+bool IsSelfAtariCaptureForSimulation( const game_info_t *game, const int pos, const int color, const int lib );
 
-//  ©ŒÈƒAƒ^ƒŠ‚É‚È‚éƒgƒŠ‚©‚Ç‚¤‚©”»’è
-bool IsSelfAtariCaptureForSimulation(game_info_t *game, int pos, int color, int lib);
+//  è‡ªå·±ã‚¢ã‚¿ãƒªã«ãªã‚‹ã‹ã©ã†ã‹ã®åˆ¤å®š
+bool IsSelfAtari( const game_info_t *game, const int color, const int pos );
+
+//  æ¬ ã‘çœ¼ã‚’ç¶™ãã‹ã©ã†ã‹ã®åˆ¤å®šã®æº–å‚™
+bool IsAlreadyCaptured( const game_info_t *game, const int color, const int id, int player_id[], int player_ids );
 
 #endif

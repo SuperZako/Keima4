@@ -119,3 +119,95 @@
         background: -o-linear-gradient(-45deg, rgba(35,36,39,1) 0%,rgba(0,0,0,1) 100%);
         background: linear-gradient(135deg, rgba(35,36,39,1) 0%,rgba(0,0,0,1) 100%);
     }
+
+
+
+
+.dialog-overlay {
+    background-color: transparent;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 100%;
+    min-width: 100%;
+    z-index: 1049;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog {
+    background-color: #ffffff;
+    color: #1d1d1d;
+    z-index: 1050;
+    box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.3);
+}
+
+    .dialog.pass-dialog {
+        width: 600px;
+        height: 120px;
+        padding: 24px;
+    }
+
+    .dialog.settings-dialog {
+        padding: 24px;
+    }
+
+    .dialog.result-dialog {
+        padding: 24px;
+    }
+
+
+.pass-dialog-content {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 60px;
+}
+
+.op-dark {
+    background-color: rgba(29, 29, 29, 0.7);
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+.button {
+    padding: 0 1rem;
+    height: 2.125rem;
+    text-align: center;
+    vertical-align: middle;
+    background-color: #ffffff;
+    border: 1px #d9d9d9 solid;
+    color: #262626;
+    cursor: pointer;
+    display: inline-block;
+    outline: none;
+    /*font-size: .875rem;*/
+    font-size: 2rem;
+    margin: .15625rem 0;
+    position: relative;
+}
+
+
+.settings-dialog-content {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 54px;
+}
+
+input[type="radio"] {
+    transform: scale(3);
+    padding: 0px;
+    margin: 0;
+    vertical-align: 0.8rem;
+}
+
+.result-dialog-content {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 54px;
+}

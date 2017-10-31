@@ -1,83 +1,58 @@
-#ifndef _GTP_H_
+ï»¿#ifndef _GTP_H_
 #define _GTP_H_
 
-const int GTP_COMMAND_NUM = 25;
+/////////////
+//  å®šæ•°  //
+/////////////
 
+//  GTPã‚³ãƒãƒ³ãƒ‰ã®æ–‡å­—æ•°ã®ä¸Šé™
+const int GTP_COMMAND_SIZE = 64;
+
+//  GTPã‚³ãƒãƒ³ãƒ‰å…¥åŠ›æ–‡å­—åˆ—ã®ä¸Šé™
 const int BUF_SIZE = 256;
 
+//  GTPã‚³ãƒãƒ³ãƒ‰ã®å€‹æ•°
+const int GTP_COMMANDS = 21;
+
+//  ã‚³ãƒãƒ³ãƒ‰ã®åŒºåˆ‡ã‚Šæ–‡å­—(ç©ºç™½æ–‡å­—)
 #define DELIM  " "
+
+//  ãƒ—ãƒ­ã‚°ãƒ©ãƒ å
 #define PROGRAM_NAME  "Ray"
-#define PROGRAM_VERSION  "8.0.1"
+
+//  ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³
+#define PROGRAM_VERSION  "9.0.1"
+
+//  GTPã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³
 #define PROTOCOL_VERSION  "2"
 
+
+//////////////
+//  æ§‹é€ ä½“  //
+//////////////
+
+//  GTPã‚³ãƒãƒ³ãƒ‰å‡¦ç†ç”¨ã®æ§‹é€ ä½“
+struct GTP_command_t {
+  char command[GTP_COMMAND_SIZE];
+  void (*function)();
+};
+
+
+////////////
+//  é–¢æ•°  //
+////////////
+
 #if defined (_WIN32)
-#define STRDUP(var) _strdup((var))
 #define STRCPY(dst, size, src) strcpy_s((dst), (size), (src))
 #define STRTOK(src, token, next) strtok_s((src), (token), (next))
 #else
-#define STRDUP(var) strdup((var))
 #define STRCPY(dst, size, src) strcpy((dst), (src))
 #define STRTOK(src, token, next) strtok((src), (token))
 #endif
 
-typedef struct {
-	void(*function)();
-	char *type;
-	char *label;
-	char *command;
-} GTP_command_t;
-
 #define CHOMP(command) if(command[strlen(command)-1] == '\n') command[strlen(command)-1] = '\0'
 
-// gtp–{‘Ì
-void GTP_main(void);
-// gtp‚Ìo—Í
-void GTP_message(void);
-// gtpƒRƒ}ƒ“ƒh‚ğİ’è‚·‚é
-void GTP_setCommand(void);
-// gtp‚Ìo—Í—pŠÖ”
-void GTP_response(const char *res, bool success);
-// boardsizeƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_boardsize(void);
-// clearboardƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_clearboard(void);
-// nameƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_name(void);
-// protocolversionƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_protocolversion(void);
-// genmoveƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_genmove(void);
-// playƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_play(void);
-// knowncommandƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_knowncommand(void);
-// listcommandsƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_listcommands(void);
-// quitƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_quit(void);
-// komiƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_komi(void);
-// getkomiƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_getkomi(void);
-// finalscoreƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_finalscore(void);
-// timesettingsƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_timesettings(void);
-// timeleftƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_timeleft(void);
-// versionƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_version(void);
-// showboardƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_showboard(void);
-// kgs-genmove_cleanupƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_kgs_genmove_cleanup(void);
-// final_status_listƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_final_status_list(void);
-// set_free_handicapƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_set_free_handicap(void);
-// fixed_handicapƒRƒ}ƒ“ƒh‚ğˆ—
-void GTP_fixed_handicap(void);
-
-void GTP_loop(Platform::String^ inputString);
+// gtpæœ¬ä½“
+void GTP_main( void );
 
 #endif

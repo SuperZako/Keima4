@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 #include <cstdio>
 #include <cstring>
@@ -11,78 +11,69 @@
 
 using namespace std;
 
-
-wchar_t gogui_x[] = {
-  'I', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J',
-  'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-  'U', 'V', 'W', 'X', 'Y', 'Z'
-};
-
-char pass[] = "PASS";
-char resign[] = "resign";
+const char pass[] = "PASS";
+const char resign[] = "resign";
 
 
 ////////////////////////////////////
-//  2ŸŒ³•\‹L‚©‚ç1ŸŒ³•\‹L‚Ö•ÏŠ·  //
+//  2æ¬¡å…ƒè¡¨è¨˜ã‹ã‚‰1æ¬¡å…ƒè¡¨è¨˜ã¸å¤‰æ›  //
 ////////////////////////////////////
 int
-StringToInteger(char *cpos)
+StringToInteger( const char *cpos )
 {
-	char alphabet;
-	int i, x, y, pos;
+  char alphabet;
+  int x, y, pos;
 
-	if (strcmp(cpos, "pass") == 0 ||
-		strcmp(cpos, "PASS") == 0) {
-		pos = PASS;
-	}
-	else {
-		alphabet = (char)toupper(cpos[0]);
-		x = 0;
-		for (i = 1; i <= pure_board_size; i++) {
-			if (gogui_x[i] == alphabet) {
-				x = i;
-			}
-		}
-		y = pure_board_size - atoi(&cpos[1]) + 1;
-		pos = POS(x + (OB_SIZE - 1), y + (OB_SIZE - 1));
-	}
+  if (strcmp(cpos, "pass") == 0 || 
+      strcmp(cpos, "PASS") == 0){
+    pos = PASS;
+  } else {
+    alphabet = (char)toupper(cpos[0]);
+    x = 0;
+    for (int i = 1; i <= pure_board_size; i++) {
+      if (gogui_x[i] == alphabet) {
+	x = i;
+      }
+    }
+    y = pure_board_size - atoi(&cpos[1]) + 1;
+    pos = POS(x + (OB_SIZE - 1), y + (OB_SIZE - 1));
+  }
 
-	return pos;
+  return pos;
 }
 
 
 ////////////////////////////////////
-//  1ŸŒ³•\‹L‚©‚ç2ŸŒ³•\‹L‚Ö•ÏŠ·  //
+//  1æ¬¡å…ƒè¡¨è¨˜ã‹ã‚‰2æ¬¡å…ƒè¡¨è¨˜ã¸å¤‰æ›  //
 ////////////////////////////////////
-void IntegerToString(int pos, char *cpos) {
-	int x, y;
+void
+IntegerToString( const int pos, char *cpos )
+{
+  int x, y;
 
-	if (pos == PASS) {
+  if (pos == PASS) {
 #if defined (_WIN32)
-		sprintf_s(cpos, 5, "%s", pass);
+    sprintf_s(cpos, 5, "%s", pass);
 #else
-		sprintf(cpos, "%s", pass);
+    snprintf(cpos, 5, "%s", pass);
 #endif	
-	}
-	else if (pos == RESIGN) {
+  } else if (pos == RESIGN) {
 #if defined (_WIN32)
-		sprintf_s(cpos, 7, "%s", resign);
+    sprintf_s(cpos, 7, "%s", resign);
 #else
-		sprintf(cpos, "%s", resign);
+    snprintf(cpos, 7, "%s", resign);
 #endif	
-	}
-	else {
-		x = X(pos) - (OB_SIZE - 1);
-		y = pure_board_size - (Y(pos) - OB_SIZE);
-		cpos[0] = gogui_x[x];
-		if (y / 10 == 0) {
-			cpos[1] = (char)('0' + y % 10);
-			cpos[2] = '\0';
-		}
-		else {
-			cpos[1] = (char)('0' + y / 10);
-			cpos[2] = (char)('0' + y % 10);
-			cpos[3] = '\0';
-		}
-	}
+  } else {
+    x = X(pos) - (OB_SIZE - 1);
+    y = pure_board_size - (Y(pos) - OB_SIZE);
+    cpos[0] = gogui_x[x];
+    if (y / 10 == 0) {
+      cpos[1] = (char)('0' + y % 10);
+      cpos[2] = '\0';
+    } else {
+      cpos[1] = (char)('0' + y / 10);
+      cpos[2] = (char)('0' + y % 10);
+      cpos[3] = '\0';
+    }
+  }
 }

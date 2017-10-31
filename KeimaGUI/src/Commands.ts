@@ -29,9 +29,33 @@ namespace Commands {
         let result = Keima.Main.gets("genmove " + stone);
 
         let lastMove = getLastMove();
+
+        if (lastMove.pos === "PASS") {
+            let secondLastMove = getLastMove(1);
+
+            if (secondLastMove.pos === "PASS") {
+                //let score = finalScore();
+
+                //let textContent = score.color + "Win!" + "+" + score.point;
+                //resultDialog.showDialog(textContent);
+
+                //Main.setGameOn(false);
+                Main.resign();
+                return;
+            }
+            // GameInfo.updateMoveInfo();
+            return lastMove;
+
+        }
         return lastMove;
     }
     export function clear_board() {
         Keima.Main.clearBoard();
+    }
+    export function finalScore() {
+        let result: string = Keima.Main.gets("final_score");
+        let color = result.substr(0, 1) === "W" ? "White" : "Black";
+        let point = Number(result.substr(1));
+        return { color, point };
     }
 }

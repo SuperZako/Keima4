@@ -1,39 +1,33 @@
-#ifndef _PATTERNHASH_H_
+ï»¿#ifndef _PATTERNHASH_H_
 #define _PATTERNHASH_H_
 
 #include "GoBoard.h"
 #include "Pattern.h"
 
-constexpr int HASH_MAX = 1048576; // 2^20
-constexpr int BIT_MAX = 60;
+const int HASH_MAX = 1048576; // 2^20
+const int BIT_MAX = 60;
 
 #define TRANS20(hash)	(((hash&0xFFFFFFFF)^((hash>>32)&0xFFFFFFFF))&0xFFFFF)
 
-// ƒpƒ^[ƒ“
-typedef struct _pattern_hash {
-	unsigned long long list[MD_MAX + MD_LARGE_MAX];
-} pattern_hash_t;
+// ãƒ‘ã‚¿ãƒ¼ãƒ³
+struct pattern_hash_t {
+  unsigned long long list[MD_MAX + MD_LARGE_MAX];
+};
 
-// ƒCƒ“ƒfƒbƒNƒX 
-typedef struct _index_hash {
-	unsigned long long hash;
-	int index;
-} index_hash_t;
+// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ 
+struct index_hash_t {
+  unsigned long long hash;
+  int index;
+};
 
 ////////////
-//  ŠÖ”  //
+//  é–¢æ•°  //
 ////////////
 
-//  ƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…ŠÖ”
-void PatternHash(struct pattern *pat, pattern_hash_t *hash_pat);
+//  ãƒ‘ã‚¿ãƒ¼ãƒ³ã®ãƒãƒƒã‚·ãƒ¥é–¢æ•°
+void PatternHash( const pattern_t *pat, pattern_hash_t *hash_pat );
 
-//  ƒpƒ^[ƒ“‚ÌƒnƒbƒVƒ…ŠÖ”
-unsigned long long MD2Hash(unsigned int md2);
-unsigned long long MD3Hash(unsigned int md3);
-unsigned long long MD4Hash(unsigned int md4);
-unsigned long long MD5Hash(unsigned long long int md5);
-
-//  ƒCƒ“ƒfƒbƒNƒX‚ğ’Tõ
-int SearchIndex(index_hash_t *index, unsigned long long hash);
+//  ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ç´¢
+int SearchIndex( const index_hash_t *index, const unsigned long long hash );
 
 #endif	// _PATTTERNHASH_H_ 

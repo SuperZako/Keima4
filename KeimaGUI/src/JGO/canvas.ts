@@ -1,11 +1,6 @@
 namespace JGO {
     'use strict';
 
-    //var C = require('./constants');
-    //var Coordinate = require('./coordinate');
-    //var Stones = require('./stones');
-    //var util = require('./util');
-
     /**
      * Create a jGoBoard canvas object.
      *

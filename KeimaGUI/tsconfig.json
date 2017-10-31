@@ -6,7 +6,7 @@
     "noEmitOnError": true,
     "removeComments": false,
     "sourceMap": true,
-
+    "emitBOM": true,
     "outFile": "built/out.js"
   },
 

@@ -1,44 +1,44 @@
-#pragma once
+ï»¿#ifndef _DYNAMICKOMI_H_
+#define _DYNAMICKOMI_H_
 
 #include "GoBoard.h"
 #include "UctSearch.h"
 
 ////////////////
-//    ’è”    //
+//    å®šæ•°    //
 ////////////////
 
-// ƒRƒ~‚ğŠÉ‚ß‚éŸ—¦‚Ìè‡’l
+//  ã‚³ãƒŸã‚’ç·©ã‚ã‚‹å‹ç‡ã®é–¾å€¤
 const double RED = 0.35;
-// ƒRƒ~‚ğŒµ‚µ‚­‚·‚éŸ—¦‚Ìè‡’l
+
+//  ã‚³ãƒŸã‚’å³ã—ãã™ã‚‹å‹ç‡ã®é–¾å€¤
 const double GREEN = 0.75;
 
-// ƒRƒ~‚Ì’l‚ğû‘©‚³‚¹‚éè”
+//  ã‚³ãƒŸã®å€¤ã‚’åæŸã•ã›ã‚‹æ‰‹æ•°
 const int LINEAR_THRESHOLD = 200;
-// ’u‚«Î1q‚ ‚½‚è‚Ìd‚İ
+
+//  ç½®ãçŸ³1å­ã‚ãŸã‚Šã®é‡ã¿
 const int HANDICAP_WEIGHT = 8;
 
-
+//  Dynamic Komiã®è¨­å®š
 enum DYNAMIC_KOMI_MODE {
-  DK_OFF,
-  DK_LINEAR,
-  DK_VALUE,
+  DK_OFF,     // Dynamic Komiãªã—
+  DK_LINEAR,  // Linear Handicap
+  DK_VALUE,   // Value Situational
 };
 
+
 ////////////////
-//    ŠÖ”    //
+//    é–¢æ•°    //
 ////////////////
 
-// ’u‚«Î‚ÌŒÂ”‚Ìİ’è
-void SetHandicapNum( int num );
+//  ç½®ãçŸ³ã®å€‹æ•°ã®è¨­å®š
+void SetHandicapNum( const int num );
 
-// ’u‚«Î‚ÌŒÂ”‚Ìİ’è(ƒeƒXƒg‘Î‹Ç—p)
-void SetConstHandicapNum( int num );
+//  ç½®ãçŸ³ã®å€‹æ•°ã®è¨­å®š(ãƒ†ã‚¹ãƒˆå¯¾å±€ç”¨)
+void SetConstHandicapNum( const int num );
 
-// Dynamic Komi
-void DynamicKomi( game_info_t *game, uct_node_t *root, int color );
+//  Dynamic Komi
+void DynamicKomi( const game_info_t *game, const uct_node_t *root, const int color );
 
-// ƒRƒ~‚Ì’l‚ğ’¼ü“I‚ÉŒ¸‚ç‚·Dynamic Komi
-void LinearHandicap( game_info_t *game );
-
-// Ÿ—¦‚ÉŠî‚Ã‚¢‚ÄƒRƒ~‚Ì’l‚ğ•ÏX‚·‚éDynamic Komi
-void ValueSituational( uct_node_t *root, int color );
+#endif
