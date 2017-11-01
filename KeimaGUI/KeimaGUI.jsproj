@@ -108,9 +108,7 @@
     <Content Include="images\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <Content Include="images\StoreLogo.png" />
     <Content Include="images\Wide310x150Logo.scale-200.png" />
-    <Content Include="node_modules\%40types\winjs\package.json" />
-    <Content Include="node_modules\%40types\winjs\README.md" />
-    <Content Include="node_modules\%40types\winjs\types-metadata.json" />
+    <Content Include="package.json" />
     <Content Include="sim_params\MD2.txt" />
     <Content Include="sim_params\Pat3.txt" />
     <Content Include="sim_params\PreviousDistance.txt" />
@@ -179,13 +177,15 @@
     <Content Include="packages.config" />
     <Content Include="css\default.css" />
     <None Include="KeimaGUI_TemporaryKey.pfx" />
-    <TypeScriptCompile Include="node_modules\%40types\winjs\index.d.ts" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{4a0dddb5-7a95-4fbf-97cc-616d07737a77}" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Keima\Keima.vcxproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="node_modules\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\$(WMSJSProjectDirectory)\Microsoft.VisualStudio.$(WMSJSProject).targets" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets')" />
